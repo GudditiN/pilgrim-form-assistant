@@ -16,6 +16,17 @@ required.
 </tr>
 </table>
 
+## Install in Chrome/Edge (2 minutes, no store needed)
+
+1. Go to **[the latest release](https://github.com/GudditiN/pilgrim-form-assistant/releases/tag/v1.0.0)** and download `pilgrim-form-assistant.zip` from **Assets**.
+2. **Unzip it** somewhere permanent (e.g. your Documents folder) - don't delete this folder afterwards.
+3. Open `chrome://extensions` and turn on **Developer mode** (toggle, top-right).
+4. Click **Load unpacked** and select the unzipped `pilgrim-form-assistant` folder.
+5. Pin it from the toolbar's puzzle-piece icon - done!
+
+No account, payment, or Chrome Web Store listing required.
+*(Using Firefox, building the zip yourself, or something not working? See [full instructions](#installing-in-chrome-download-the-zip-no-chrome-web-store-needed) below.)*
+
 ## What it does
 
 - Saves one or more profiles (your contact details + up to 6 pilgrims per
