@@ -1,0 +1,29 @@
+name: Build and release extension zip
+
+# Builds dist/pilgrim-form-assistant.zip and attaches it to a GitHub
+# Release whenever a version tag (e.g. v1.0.1) is pushed. This is the
+# free, no-store-account way to distribute the extension: people download
+# the zip from the release page and "Load unpacked" / "Load Temporary
+# Add-on" it themselves - see README.md for those steps.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build zip
+        run: node scripts/build-zip.js
+
+      - name: Create GitHub Release with the zip attached
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/pilgrim-form-assistant.zip
+          generate_release_notes: true

@@ -1,11 +1,14 @@
 # Pilgrim Form Assistant
 
-A local-only Chrome extension that stores your pilgrim/traveler profiles in
+A local-only browser extension (Chrome, Edge, Firefox, and other
+Chromium/Gecko browsers) that stores your pilgrim/traveler profiles in
 your browser and helps fill in supported TTD (Tirumala Tirupati
 Devasthanams) online registration forms in one click.
 
 **Free for everyone.** No cost, no subscription, no ads, no account
 required. Developed by **G Naganjaneyulu**.
+
+<img src="preview/general-tab.png" alt="Pilgrim Form Assistant popup showing the General Details tab" width="360" />
 
 ## What it does
 
@@ -118,6 +121,8 @@ can dismiss.
 11. Navigate to a supported TTD registration page and click **Fill Only**
     or **Fill & Continue**.
 
+<img src="preview/pilgrims-tab.png" alt="Pilgrim Form Assistant popup showing the Pilgrims tab and Fill & Continue / Fill Only buttons" width="320" />
+
 No other software, accounts, or payment are required - just Chrome
 itself.
 
@@ -152,6 +157,89 @@ live in `chrome.storage.local`, not in the extension folder.
 (your saved profiles) as well - export a backup first from **Settings →
 Export backup** if you want to keep them.
 
+## Installing in Firefox
+
+The same codebase works in Firefox too - `manifest.json` declares both
+the Chrome-style (`service_worker`) and Firefox-style (`scripts`)
+background configuration, plus the `browser_specific_settings.gecko`
+block Firefox needs, so there's no separate Firefox build to maintain.
+Requires Firefox 121 or later.
+
+**Temporary load (for trying it out / development):**
+
+1. Download and unzip `pilgrim-form-assistant.zip` (or `git clone` this
+   repo) per Steps 1 above.
+2. Open `about:debugging#/runtime/this-firefox` in Firefox's address bar.
+3. Click **Load Temporary Add-on...**.
+4. In the file picker, navigate into the extracted `pilgrim-form-
+   assistant` folder and select the `manifest.json` file itself (Firefox
+   reads the whole folder from there).
+5. It appears in the list as "Pilgrim Form Assistant" - open it from the
+   toolbar the same way as in Chrome.
+
+**Note:** a temporary add-on is removed when Firefox closes - you'd have
+to reload it each session. For something that persists, either install a
+`.xpi` signed by Mozilla (see publishing below) or use **Firefox
+Developer Edition** / **Nightly**, which allow permanently installing
+unsigned extensions via `xpinstall.signatures.required` in `about:config`
+(not recommended for a regular daily-use profile).
+
+## Publishing this extension (free, no store fee either way)
+
+### Chrome/Edge - via GitHub, without the Chrome Web Store's fee
+
+The Chrome Web Store charges a one-time $5 developer registration fee.
+The [common, accepted alternative for smaller/personal extensions](https://www.reddit.com/r/chrome_extensions/) is to
+skip the store entirely and distribute the zip yourself - which is
+exactly what the "Installing in Chrome" section above already supports:
+
+1. Push this repo to a public GitHub repository.
+2. Tag a version and push the tag, e.g.:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+3. The included GitHub Actions workflow
+   (`.github/workflows/release.yml`) automatically runs `npm run zip` and
+   attaches `pilgrim-form-assistant.zip` to a new GitHub Release for that
+   tag - no local build step needed.
+4. Share the release page URL. Anyone can download the zip from it and
+   follow "Installing in Chrome" above. Updates work the same way: tag a
+   new version, the workflow builds a fresh zip, people re-download it.
+
+(If you'd rather build and attach the zip manually instead of using the
+workflow, `npm run zip` + attaching the file to a release via `gh release
+create v1.0.0 dist/pilgrim-form-assistant.zip` or the GitHub UI works
+just as well.)
+
+### Firefox - via addons.mozilla.org (AMO), completely free
+
+Unlike the Chrome Web Store, Mozilla's add-on store has no listing fee at
+all.
+
+1. Build the zip: `npm run zip` (or download the one from a GitHub
+   Release above - it's the same file).
+2. Create a free Firefox account, then go to
+   [addons.mozilla.org's submission page](https://addons.mozilla.org/en-US/developers/addon/submit/upload-listed).
+3. Choose **On this site** (a public, listed add-on) and upload
+   `dist/pilgrim-form-assistant.zip`.
+4. AMO automatically scans the source (it's all plain, readable
+   JS/HTML/CSS with no bundler or minifier, which automated review tools
+   generally handle well) and either auto-approves or queues a quick
+   manual review - either way, there's no fee.
+5. Fill in the listing details it asks for (summary, category, etc.) and
+   submit. Once approved, Mozilla hosts and signs it, and updates are
+   pushed by uploading a new zip with a bumped `version` in
+   `manifest.json`.
+
+**One important, one-time decision:** `manifest.json`'s
+`browser_specific_settings.gecko.id` (currently set to a placeholder,
+`pilgrim-form-assistant@naganjaneyulu.dev`) is what AMO uses to recognize
+this as "the same add-on" across versions. Change it to whatever you like
+*before* your first submission if you want something different, but
+don't change it afterwards - that would make AMO treat a future update as
+a brand-new, unrelated add-on.
+
 ## Using it
 
 1. Open the extension popup and create a profile (**New**) under the
@@ -178,14 +266,17 @@ computer). Imported files are validated for shape before being loaded.
 
 ```
 pilgrim-form-assistant/
-├── manifest.json       # MV3 manifest, minimal permissions
+├── manifest.json       # MV3 manifest, minimal permissions, cross-browser
+│                        # (Chrome/Edge + Firefox via browser_specific_settings)
 ├── popup.html/.css/.js # Profile management + fill-trigger UI
 ├── content.js          # Generic, site-agnostic form-filling engine
 ├── site-mappings.js    # TTD-site-specific keyword hints (kept separate
 │                        # from the generic engine in content.js)
-├── background.js       # No-op service worker (required by MV3), no network
+├── background.js       # No-op background script, no network
 ├── icons/               # Extension icons (temple.png source + generated sizes)
 ├── scripts/build-zip.js # Dev-only packaging script
+├── .github/workflows/release.yml # Builds + attaches the zip to a GitHub
+│                                   # Release on each version tag push
 └── store/               # Chrome Web Store listing draft
 ```
 
@@ -194,10 +285,89 @@ Website-specific knowledge (TTD form terminology such as "devotee name",
 contains no site-specific selectors or logic, so new TTD form variants can
 be supported by extending `site-mappings.js` alone.
 
+## Local development setup
+
+For anyone who wants to change the code (not just use the built extension)
+- e.g. tweaking `site-mappings.js` for a new TTD form, or adjusting the
+popup UI.
+
+**Prerequisites:**
+- A Chromium browser (Chrome, Edge, Brave, ...) and/or Firefox 121+, for
+  loading and testing the extension.
+- [Node.js](https://nodejs.org/) - only needed to run `npm run zip`
+  (packaging). The extension itself has zero runtime dependencies and
+  needs no build step to run.
+- `git`, to clone the repo.
+
+**1. Get the code:**
+
+```bash
+git clone <this-repo-url>
+cd pilgrim-form-assistant
+```
+
+(No `npm install` is required - there are no dependencies to install for
+the extension itself.)
+
+**2. Load it unpacked, straight from the source folder:**
+
+- **Chrome/Edge:** `chrome://extensions` → enable **Developer mode** →
+  **Load unpacked** → select this `pilgrim-form-assistant` folder.
+- **Firefox:** `about:debugging#/runtime/this-firefox` → **Load Temporary
+  Add-on...** → select `manifest.json` inside this folder.
+
+See "Installing in Chrome" / "Installing in Firefox" above for the full
+click-by-click steps - they're the same, just pointed at your working
+copy instead of a downloaded ZIP.
+
+**3. Make your changes, then reload to see them:**
+
+- Edit `popup.html`/`popup.css`/`popup.js` for the UI, `content.js` for
+  the generic form-filling engine, or `site-mappings.js` for TTD-specific
+  keyword hints/selectors.
+- After saving, go back to `chrome://extensions` (or
+  `about:debugging` in Firefox) and click the reload icon on the
+  extension's card. Popup changes (HTML/CSS/JS) apply immediately on next
+  open; content-script changes (`content.js`, `site-mappings.js`) also
+  need the target TTD tab refreshed, since content scripts only inject on
+  page load.
+- Check the browser console (on the TTD page, for `content.js`) or the
+  popup's own inspector (right-click the popup → **Inspect**, for
+  `popup.js`) for errors.
+
+**4. Verify before committing:**
+
+```bash
+# manifest.json is valid JSON
+node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8'))"
+
+# every script parses cleanly
+node --check popup.js
+node --check content.js
+node --check background.js
+node --check site-mappings.js
+
+# package it, to make sure the build step still works
+npm run zip
+```
+
+There's no automated test suite in this repo (it's plain, dependency-free
+JS with no bundler). The checks above catch syntax errors; actual
+form-filling behavior is verified by hand against the real TTD sites, or
+with a throwaway Node script using `jsdom` to simulate a page's DOM if you
+want to test `content.js`'s matching logic in isolation without a browser.
+
 ## Screenshots
 
-Add real screenshots to `store/screenshots/` before publishing to the
-Chrome Web Store.
+All from the actual popup, unpacked and running.
+
+| General Details | Pilgrims | Settings |
+| --- | --- | --- |
+| ![General Details tab: email, mobile, city, state, country, PIN fields](preview/general-tab.png) | ![Pilgrims tab: profile bar and pilgrim count, 0 of 6](preview/pilgrims-tab.png) | ![Settings tab: privacy note, Export/Import backup buttons, supported sites](preview/settings-tab.png) |
+
+(Also copy these into `store/screenshots/` when submitting to the Chrome
+Web Store or AMO listings - those require screenshots uploaded through
+each store's own dashboard, not linked from the repo.)
 
 ## Developer
 

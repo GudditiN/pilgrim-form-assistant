@@ -1,0 +1,319 @@
+<title>Pilgrim Fill Flow</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,500&family=Work+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #fbf3e6;
+    --surface: #fffaf1;
+    --surface-raised: #ffffff;
+    --line: #e4d2b6;
+    --ink: #3a2317;
+    --ink-soft: #7a6650;
+    --maroon: #7a2418;
+    --maroon-soft: #9c4a35;
+    --saffron: #c97a1e;
+    --saffron-bg: #f7e3c2;
+    --muted: #a9927a;
+    --muted-bg: #efe6d7;
+    --font-display: "Fraunces", "Iowan Old Style", ui-serif, Georgia, serif;
+    --font-body: "Work Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #241609;
+      --surface: #2e1c0f;
+      --surface-raised: #362214;
+      --line: #4a3420;
+      --ink: #f3e6d4;
+      --ink-soft: #c9b39a;
+      --maroon: #e8896f;
+      --maroon-soft: #d9704f;
+      --saffron: #e6a544;
+      --saffron-bg: #4a3517;
+      --muted: #8a7862;
+      --muted-bg: #3a2c1c;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #241609;
+    --surface: #2e1c0f;
+    --surface-raised: #362214;
+    --line: #4a3420;
+    --ink: #f3e6d4;
+    --ink-soft: #c9b39a;
+    --maroon: #e8896f;
+    --maroon-soft: #d9704f;
+    --saffron: #e6a544;
+    --saffron-bg: #4a3517;
+    --muted: #8a7862;
+    --muted-bg: #3a2c1c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    margin: 0;
+    padding: 40px 24px 64px;
+    display: flex;
+    justify-content: center;
+  }
+
+  main {
+    width: 100%;
+    max-width: 1000px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--saffron);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(28px, 4vw, 38px);
+    line-height: 1.15;
+    margin: 0 0 14px;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  .dek {
+    font-size: 15.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 62ch;
+    margin: 0 0 36px;
+  }
+
+  .dek strong {
+    color: var(--ink);
+  }
+
+  figure {
+    margin: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 28px 22px 20px;
+  }
+
+  .diagram-scroll {
+    overflow-x: auto;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-width: 720px;
+  }
+
+  figcaption {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--surface-raised);
+    border: 1px solid var(--line);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .badge svg {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    color: var(--maroon-soft);
+  }
+
+  footer {
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* SVG diagram styling */
+  .node-fill { fill: var(--surface-raised); }
+  .node-stroke { stroke: var(--maroon-soft); }
+  .node-title { fill: var(--ink); font-weight: 600; }
+  .node-sub { fill: var(--ink-soft); font-weight: 400; }
+  .flow-line { stroke: var(--maroon-soft); fill: none; }
+  .flow-label { fill: var(--ink-soft); font-weight: 600; }
+  .boundary { stroke: var(--maroon-soft); fill: none; }
+  .boundary-label { fill: var(--maroon); font-weight: 700; letter-spacing: 1.2px; }
+  .decision-fill { fill: var(--saffron-bg); }
+  .decision-stroke { stroke: var(--saffron); }
+  .manual-fill { fill: var(--saffron-bg); }
+  .manual-stroke { stroke: var(--saffron); }
+  .manual-title { fill: var(--ink); font-weight: 700; }
+  .manual-sub { fill: var(--maroon-soft); font-weight: 600; }
+  .void-fill { fill: var(--muted-bg); }
+  .void-stroke { stroke: var(--muted); stroke-dasharray: 5 4; }
+  .void-title { fill: var(--muted); font-weight: 600; }
+  .void-line { stroke: var(--muted); stroke-dasharray: 6 5; fill: none; }
+  .void-label { fill: var(--muted); font-weight: 600; }
+</style>
+
+<main>
+  <p class="eyebrow">Pilgrim Form Assistant &middot; mechanism</p>
+  <h1>Where your profile data actually goes</h1>
+  <p class="dek">
+    From the moment you click <strong>Fill Only</strong> or
+    <strong>Fill &amp; Continue</strong>, every step happens inside the
+    browser tab. Nothing here can reach a server &mdash; there isn't one.
+  </p>
+
+  <figure>
+    <div class="diagram-scroll">
+      <svg viewBox="0 0 1040 600" role="img" aria-label="Diagram showing that clicking Fill in the popup sends your saved profile to the content script, which scans the TTD form's fields, fills only the matches while skipping captcha, OTP, and payment fields, then optionally clicks a safe Continue button before handing control back to you. A separate dashed line shows chrome.storage.local never sending data to an external server, which is crossed out.">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
+          </marker>
+        </defs>
+
+        <!-- Browser boundary -->
+        <rect x="30" y="50" width="770" height="510" rx="18" class="boundary" stroke-width="2" stroke-dasharray="2 7" stroke-linecap="round" />
+        <text x="50" y="72" class="boundary-label" font-size="12.5">YOUR BROWSER</text>
+
+        <!-- Popup -->
+        <rect x="60" y="90" width="150" height="64" rx="10" class="node-fill node-stroke" stroke-width="1.6" />
+        <text x="135" y="115" text-anchor="middle" class="node-title" font-size="14">Popup</text>
+        <text x="135" y="134" text-anchor="middle" class="node-sub" font-size="11.5">popup.js</text>
+
+        <!-- Storage cylinder -->
+        <g class="node-stroke" stroke-width="1.6">
+          <path d="M280,102 a95,15 0 0 1 190,0 v46 a95,15 0 0 1 -190,0 z" class="node-fill" />
+          <ellipse cx="375" cy="102" rx="95" ry="15" class="node-fill" />
+        </g>
+        <text x="375" y="128" text-anchor="middle" class="node-title" font-size="13.5">chrome.storage.local</text>
+        <text x="375" y="146" text-anchor="middle" class="node-sub" font-size="11">your device only</text>
+
+        <!-- External server (outside boundary) -->
+        <rect x="850" y="97" width="150" height="64" rx="10" class="void-fill void-stroke" stroke-width="1.6" />
+        <circle cx="875" cy="118" r="9" class="void-stroke" fill="none" stroke-width="1.6" />
+        <line x1="869" y1="112" x2="881" y2="124" class="void-stroke" stroke-width="1.6" stroke-dasharray="0" />
+        <text x="895" y="122" class="void-title" font-size="12.5">External server</text>
+        <text x="875" y="145" text-anchor="middle" class="void-title" font-size="11">never contacted</text>
+
+        <!-- Content script -->
+        <rect x="60" y="230" width="150" height="64" rx="10" class="node-fill node-stroke" stroke-width="1.6" />
+        <text x="135" y="255" text-anchor="middle" class="node-title" font-size="14">Content script</text>
+        <text x="135" y="274" text-anchor="middle" class="node-sub" font-size="11.5">content.js</text>
+
+        <!-- site-mappings.js -->
+        <rect x="280" y="230" width="190" height="64" rx="10" class="node-fill node-stroke" stroke-width="1.6" />
+        <text x="375" y="255" text-anchor="middle" class="node-title" font-size="14">site-mappings.js</text>
+        <text x="375" y="274" text-anchor="middle" class="node-sub" font-size="11.5">TTD field hints</text>
+
+        <!-- TTD form / DOM -->
+        <rect x="60" y="370" width="150" height="64" rx="10" class="node-fill node-stroke" stroke-width="1.6" />
+        <text x="135" y="395" text-anchor="middle" class="node-title" font-size="14">TTD form</text>
+        <text x="135" y="414" text-anchor="middle" class="node-sub" font-size="11.5">the page's DOM</text>
+
+        <!-- Decision diamond -->
+        <polygon points="465,347 560,402 465,457 370,402" class="decision-fill decision-stroke" stroke-width="1.6" />
+        <text x="465" y="398" text-anchor="middle" class="node-title" font-size="12.5">Fill &amp;</text>
+        <text x="465" y="414" text-anchor="middle" class="node-title" font-size="12.5">Continue?</text>
+
+        <!-- Continue button node -->
+        <rect x="610" y="280" width="180" height="64" rx="10" class="node-fill node-stroke" stroke-width="1.6" />
+        <text x="700" y="305" text-anchor="middle" class="node-title" font-size="13.5">Continue button</text>
+        <text x="700" y="323" text-anchor="middle" class="node-sub" font-size="11">never Pay / Submit</text>
+
+        <!-- Manual "You" node -->
+        <rect x="280" y="470" width="340" height="72" rx="12" class="manual-fill manual-stroke" stroke-width="2" />
+        <text x="450" y="497" text-anchor="middle" class="manual-title" font-size="15">You take it from here</text>
+        <text x="450" y="516" text-anchor="middle" class="manual-sub" font-size="11.5">CAPTCHA &middot; OTP &middot; payment &middot; final Submit</text>
+
+        <!-- Arrows: flow -->
+        <g class="flow-line" stroke-width="1.6" marker-end="url(#arrow)">
+          <!-- Popup <-> storage -->
+          <line x1="212" y1="122" x2="278" y2="122" marker-start="url(#arrow)" />
+          <!-- Popup -> content script -->
+          <line x1="135" y1="156" x2="135" y2="228" />
+          <!-- site-mappings -> content script -->
+          <line x1="278" y1="262" x2="212" y2="262" />
+          <!-- content script <-> TTD form (scan + fill) -->
+          <line x1="135" y1="296" x2="135" y2="368" marker-start="url(#arrow)" />
+          <!-- TTD form -> decision -->
+          <line x1="212" y1="402" x2="368" y2="402" />
+          <!-- decision -> continue button (Yes) -->
+          <line x1="537" y1="373" x2="614" y2="323" />
+          <!-- decision -> manual node (No) -->
+          <line x1="459" y1="455" x2="451" y2="468" />
+          <!-- continue button -> manual node -->
+          <line x1="690" y1="346" x2="588" y2="468" />
+        </g>
+
+        <!-- Void / never line: storage -> external -->
+        <line x1="472" y1="115" x2="848" y2="122" class="void-line" stroke-width="1.6" marker-end="url(#arrow)" />
+
+        <!-- Flow labels -->
+        <text x="245" y="112" text-anchor="middle" class="flow-label" font-size="11">save / load</text>
+        <text x="152" y="195" class="flow-label" font-size="11">send profile</text>
+        <text x="245" y="250" text-anchor="middle" class="flow-label" font-size="11">field hints</text>
+        <text x="152" y="335" class="flow-label" font-size="11">scan &amp; fill</text>
+        <text x="152" y="350" class="node-sub" font-size="10">skips captcha / OTP / payment</text>
+        <text x="290" y="390" text-anchor="middle" class="flow-label" font-size="11">after filling</text>
+        <text x="592" y="345" class="flow-label" font-size="11">Yes</text>
+        <text x="405" y="450" class="flow-label" font-size="11">No</text>
+        <text x="655" y="415" text-anchor="middle" class="flow-label" font-size="11">click, if found</text>
+        <text x="660" y="105" text-anchor="middle" class="void-label" font-size="11">never sent</text>
+      </svg>
+    </div>
+    <figcaption>
+      A click on Fill Only or Fill &amp; Continue is the only trigger in this
+      picture &mdash; everything downstream of it stays inside the dashed
+      line, and the one arrow that would leave the browser is the one that
+      never fires.
+    </figcaption>
+  </figure>
+
+  <div class="badges">
+    <span class="badge">
+      <svg viewBox="0 0 20 20" fill="none"><path d="M5 10.5l3 3 7-7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Local-only storage
+    </span>
+    <span class="badge">
+      <svg viewBox="0 0 20 20" fill="none"><path d="M5 10.5l3 3 7-7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Never auto-submits
+    </span>
+    <span class="badge">
+      <svg viewBox="0 0 20 20" fill="none"><path d="M5 10.5l3 3 7-7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      CAPTCHA / OTP / payment untouched
+    </span>
+  </div>
+
+  <footer>Pilgrim Form Assistant &mdash; free for everyone &middot; developed by G Naganjaneyulu</footer>
+</main>

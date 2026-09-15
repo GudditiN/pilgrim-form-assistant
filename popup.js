@@ -27,6 +27,7 @@ function cacheEls() {
   els.profileNameInput = qs('profileNameInput');
   els.btnNewProfile = qs('btnNewProfile');
   els.btnDuplicateProfile = qs('btnDuplicateProfile');
+  els.btnRenameProfile = qs('btnRenameProfile');
   els.btnSaveProfile = qs('btnSaveProfile');
   els.btnDeleteProfile = qs('btnDeleteProfile');
   els.btnFillContinue = qs('btnFillContinue');
@@ -48,6 +49,30 @@ function cacheEls() {
   els.statusIcon = qs('statusIcon');
   els.statusText = qs('statusText');
   els.pilgrimCardTemplate = qs('pilgrimCardTemplate');
+}
+
+const FIELD_DISPLAY_NAMES = {
+  email: 'Email ID',
+  mobile: 'Mobile',
+  city: 'City',
+  state: 'State',
+  country: 'Country',
+  pin: 'PIN code',
+  name: 'Name',
+  age: 'Age',
+  gender: 'Gender',
+  idType: 'Photo ID proof',
+  idNumber: 'Photo ID number'
+};
+
+// Some form fields on some sites can't be auto-filled (an unrecognized
+// dropdown widget, an option list that doesn't match the saved value,
+// etc.) - this surfaces which ones, in plain language, instead of
+// silently under-reporting the fill count.
+function unmatchedFieldsNote(unmatchedKeys) {
+  if (!unmatchedKeys || unmatchedKeys.length === 0) return '';
+  const names = Array.from(new Set(unmatchedKeys.map((k) => FIELD_DISPLAY_NAMES[k] || k)));
+  return ' Please set manually: ' + names.join(', ') + '.';
 }
 
 const STATUS_ICON_PATHS = {
@@ -173,10 +198,23 @@ function renderProfileIntoForm(name) {
   renderPilgrims(profile);
 }
 
+// Accepts "+91 98765 43210", "091-9876543210", etc. and normalizes to a
+// plain 10-digit number, since that's what most TTD form mobile fields
+// expect and what our 10-digit validation checks against.
+function normalizeMobile(raw) {
+  let digits = raw.replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) {
+    digits = digits.slice(2);
+  } else if (digits.length === 11 && digits.startsWith('0')) {
+    digits = digits.slice(1);
+  }
+  return digits;
+}
+
 function collectGeneralFromForm() {
   return {
     email: els.genEmail.value.trim(),
-    mobile: els.genMobile.value.trim(),
+    mobile: normalizeMobile(els.genMobile.value.trim()),
     city: els.genCity.value.trim(),
     state: els.genState.value.trim(),
     country: els.genCountry.value.trim() || 'India',
@@ -204,7 +242,7 @@ function validateGeneral(general) {
   if (general.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(general.email)) {
     errors.push('Email ID looks invalid.');
   }
-  if (general.mobile && !/^\d{10}$/.test(general.mobile.replace(/\D/g, ''))) {
+  if (general.mobile && !/^\d{10}$/.test(general.mobile)) {
     errors.push('Mobile should be a 10-digit number.');
   }
   if (general.pin && !/^\d{6}$/.test(general.pin)) {
@@ -276,11 +314,35 @@ async function handleDuplicateProfile() {
   setStatus('Duplicated as "' + name + '".', 'ready');
 }
 
-async function handleSaveProfile() {
+async function handleRenameProfile() {
   if (!state.currentProfile) {
-    setStatus('Create a profile first.', 'error');
+    setStatus('No profile selected to rename.', 'error');
     return;
   }
+  const newName = els.profileNameInput.value.trim();
+  if (!newName) {
+    setStatus('Type the new name in the box above, then click Rename.', 'error');
+    return;
+  }
+  if (newName === state.currentProfile) {
+    setStatus('That is already the profile’s name.', 'error');
+    return;
+  }
+  if (state.profiles[newName]) {
+    setStatus('A profile named "' + newName + '" already exists.', 'error');
+    return;
+  }
+  const oldName = state.currentProfile;
+  state.profiles[newName] = state.profiles[oldName];
+  delete state.profiles[oldName];
+  state.currentProfile = newName;
+  await persistState();
+  renderProfileSelect();
+  els.profileNameInput.value = '';
+  setStatus('Renamed "' + oldName + '" to "' + newName + '".', 'ready');
+}
+
+async function handleSaveProfile() {
   const general = collectGeneralFromForm();
   const pilgrims = collectPilgrimsFromForm();
   const errors = [...validateGeneral(general), ...validatePilgrims(pilgrims)];
@@ -288,8 +350,16 @@ async function handleSaveProfile() {
     setStatus(errors[0], 'error');
     return;
   }
+  let justCreated = false;
+  if (!state.currentProfile) {
+    const typed = els.profileNameInput.value.trim();
+    state.currentProfile = generateUniqueName(typed || 'My Profile');
+    els.profileNameInput.value = '';
+    justCreated = true;
+  }
   state.profiles[state.currentProfile] = { general, pilgrims };
   await persistState();
+  if (justCreated) renderProfileSelect();
   setStatus('Saved "' + state.currentProfile + '".', 'ready');
 }
 
@@ -384,13 +454,15 @@ async function handleFill(continueAfter) {
       return;
     }
     const filledText = response.filled === 1 ? '1 field' : response.filled + ' fields';
+    const note = unmatchedFieldsNote(response.unmatchedKeys);
+    const statusKind = note ? 'busy' : 'ready';
     if (continueAfter) {
       setStatus(
-        'Filled ' + filledText + '. ' + (response.continued ? 'Clicked Continue.' : 'No safe Continue button found.'),
-        'ready'
+        'Filled ' + filledText + '. ' + (response.continued ? 'Clicked Continue.' : 'No safe Continue button found.') + note,
+        statusKind
       );
     } else {
-      setStatus('Filled ' + filledText + '.', 'ready');
+      setStatus('Filled ' + filledText + '.' + note, statusKind);
     }
   } catch (err) {
     setStatus('Could not reach this page. Reload the tab and try again.', 'error');
@@ -543,6 +615,7 @@ function bindEvents() {
   els.profileSelect.addEventListener('change', handleProfileSelectChange);
   els.btnNewProfile.addEventListener('click', handleNewProfile);
   els.btnDuplicateProfile.addEventListener('click', handleDuplicateProfile);
+  els.btnRenameProfile.addEventListener('click', handleRenameProfile);
   els.btnSaveProfile.addEventListener('click', handleSaveProfile);
   els.btnDeleteProfile.addEventListener('click', handleDeleteProfile);
 

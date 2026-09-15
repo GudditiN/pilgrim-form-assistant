@@ -21,7 +21,7 @@
         <select id="profileSelect" aria-label="Saved profiles"></select>
         <svg class="select-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 7.5L10 12.5L15 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <input type="text" id="profileNameInput" placeholder="Name for new / duplicated profile" aria-label="Profile name" class="profile-name-input" />
+      <input type="text" id="profileNameInput" placeholder="Name for new / renamed / duplicated profile" aria-label="Profile name" class="profile-name-input" />
       <div class="profile-actions">
         <button id="btnNewProfile" class="chip-btn" type="button">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -30,6 +30,10 @@
         <button id="btnDuplicateProfile" class="chip-btn" type="button">
           <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 13V4.5A1.5 1.5 0 0 1 5.5 3H13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           Duplicate
+        </button>
+        <button id="btnRenameProfile" class="chip-btn" type="button">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.5 3.5l3 3L7 16H4v-3l9.5-9.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          Rename
         </button>
         <button id="btnSaveProfile" class="chip-btn chip-btn-primary" type="button">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4h9l3 3v9H4V4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 4v4h6V4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
@@ -111,6 +115,15 @@
           </label>
         </div>
         <p class="hint hint-muted">Supported sites: *.tirupatibalaji.ap.gov.in and *.ttdevasthanams.ap.gov.in</p>
+
+        <div class="about-card">
+          <img src="icons/icon48.png" alt="" class="about-icon" />
+          <div class="about-text">
+            <div class="about-name">Pilgrim Form Assistant</div>
+            <div class="about-meta">v1.0.0 &bull; Free for everyone</div>
+            <div class="about-dev">Developed by <strong>G Naganjaneyulu</strong></div>
+          </div>
+        </div>
       </div>
     </section>
   </main>
