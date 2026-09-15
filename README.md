@@ -6,9 +6,15 @@ your browser and helps fill in supported TTD (Tirumala Tirupati
 Devasthanams) online registration forms in one click.
 
 **Free for everyone.** No cost, no subscription, no ads, no account
-required. Developed by **G Naganjaneyulu**.
+required. 
 
-<img src="preview/general-tab.png" alt="Pilgrim Form Assistant popup showing the General Details tab" width="360" />
+<table>
+<tr>
+<td><img src="preview/general-tab.png" alt="Pilgrim Form Assistant popup showing the General Details tab" width="260" /></td>
+<td><img src="preview/pilgrims-tab.png" alt="Pilgrim Form Assistant popup showing the Pilgrims tab" width="260" /></td>
+<td><img src="preview/settings-tab.png" alt="Pilgrim Form Assistant popup showing the Settings tab" width="260" /></td>
+</tr>
+</table>
 
 ## What it does
 
