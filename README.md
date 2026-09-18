@@ -10,9 +10,8 @@ required.
 
 <table>
 <tr>
-<td><img src="preview/general-tab.png" alt="Pilgrim Form Assistant popup showing the General Details tab" width="260" /></td>
-<td><img src="preview/pilgrims-tab.png" alt="Pilgrim Form Assistant popup showing the Pilgrims tab" width="260" /></td>
-<td><img src="preview/settings-tab.png" alt="Pilgrim Form Assistant popup showing the Settings tab" width="260" /></td>
+<td><img src="preview/popup.png" alt="Pilgrim Form Assistant toolbar popup: profile picker and Fill & Continue / Fill Only buttons" width="260" /></td>
+<td><img src="preview/fullpage-pilgrims.png" alt="Full-page editor showing the Pilgrims tab" width="420" /></td>
 </tr>
 </table>
 
@@ -26,6 +25,20 @@ required.
 
 No account, payment, or Chrome Web Store listing required.
 *(Using Firefox, building the zip yourself, or something not working? See [full instructions](#installing-in-chrome-download-the-zip-no-chrome-web-store-needed) below.)*
+
+## Install in Firefox (from addons.mozilla.org, free)
+
+Published and approved on Mozilla's add-on store - no developer-mode
+steps needed:
+
+1. Go to **[Pilgrim Form Assistant on addons.mozilla.org](https://addons.mozilla.org/en-GB/firefox/addon/pilgrim-form-assistant/)**.
+2. Click **Add to Firefox**, then **Add** on the permission prompt.
+3. Pin it from the toolbar's extensions (puzzle-piece) icon - done!
+
+No account, payment, or manual zip download required. Requires Firefox
+121 or later. *(Building it from source, or want the temporary/unlisted
+load method instead? See [Installing in Firefox](#installing-in-firefox)
+below.)*
 
 ## What it does
 
@@ -128,9 +141,9 @@ can dismiss.
    the one that directly contains `manifest.json` - then click **Select**
    / **Open**.
 8. Confirm it loaded: "Pilgrim Form Assistant" should now appear as a
-   card on the extensions page with its temple icon, version `1.0.0`, and
-   no red "Errors" button. If you do see an "Errors" button, click it to
-   see what Chrome reported (you may have selected a sub-folder, like
+   card on the extensions page with its temple icon, a version number,
+   and no red "Errors" button. If you do see an "Errors" button, click it
+   to see what Chrome reported (you may have selected a sub-folder, like
    `icons/`, instead of the top-level folder).
 
 **Step 3 - Pin it and use it**
@@ -138,12 +151,13 @@ can dismiss.
 9. Click the puzzle-piece icon in Chrome's toolbar, find "Pilgrim Form
    Assistant" in the list, and click its pin icon so it sits directly in
    the toolbar.
-10. Click the pinned icon to open the popup, create a profile, and fill it
-    in under **General** and **Pilgrims**, then click **Save**.
-11. Navigate to a supported TTD registration page and click **Fill Only**
-    or **Fill & Continue**.
+10. Click the pinned icon to open the popup, create a profile, then click
+    **General** or **Pilgrims** to open the full-page editor in a new
+    tab, fill in your details, and click **Save** there.
+11. Back on the popup, navigate to a supported TTD registration page and
+    click **Fill Only** or **Fill & Continue**.
 
-<img src="preview/pilgrims-tab.png" alt="Pilgrim Form Assistant popup showing the Pilgrims tab and Fill & Continue / Fill Only buttons" width="320" />
+<img src="preview/fullpage-pilgrims.png" alt="Full-page editor showing the Pilgrims tab with a saved pilgrim's details" width="420" />
 
 No other software, accounts, or payment are required - just Chrome
 itself.
@@ -186,6 +200,13 @@ the Chrome-style (`service_worker`) and Firefox-style (`scripts`)
 background configuration, plus the `browser_specific_settings.gecko`
 block Firefox needs, so there's no separate Firefox build to maintain.
 Requires Firefox 121 or later.
+
+**From addons.mozilla.org (recommended for regular use):** it's published
+and approved at
+[addons.mozilla.org/en-GB/firefox/addon/pilgrim-form-assistant](https://addons.mozilla.org/en-GB/firefox/addon/pilgrim-form-assistant/) -
+click **Add to Firefox** there and you're done; no developer-mode steps
+or manual zip needed. The steps below are only for building from source
+or loading an unlisted/temporary copy instead.
 
 **Temporary load (for trying it out / development):**
 
@@ -239,20 +260,28 @@ just as well.)
 Unlike the Chrome Web Store, Mozilla's add-on store has no listing fee at
 all.
 
-1. Build the zip: `npm run zip` (or download the one from a GitHub
+**Status: published and approved** at
+[addons.mozilla.org/en-GB/firefox/addon/pilgrim-form-assistant](https://addons.mozilla.org/en-GB/firefox/addon/pilgrim-form-assistant/).
+
+To ship an update to the existing listing:
+
+1. Bump `version` in both `manifest.json` and `package.json` (e.g.
+   `1.0.0` → `1.0.1`) - AMO rejects re-uploading a version number it's
+   already seen.
+2. Build the zip: `npm run zip` (or download the one from a GitHub
    Release above - it's the same file).
-2. Create a free Firefox account, then go to
-   [addons.mozilla.org's submission page](https://addons.mozilla.org/en-US/developers/addon/submit/upload-listed).
-3. Choose **On this site** (a public, listed add-on) and upload
-   `dist/pilgrim-form-assistant.zip`.
+3. On the [AMO developer dashboard](https://addons.mozilla.org/en-US/developers/), open this add-on's listing and choose
+   **Upload New Version**, then select `dist/pilgrim-form-assistant.zip`.
 4. AMO automatically scans the source (it's all plain, readable
    JS/HTML/CSS with no bundler or minifier, which automated review tools
    generally handle well) and either auto-approves or queues a quick
    manual review - either way, there's no fee.
-5. Fill in the listing details it asks for (summary, category, etc.) and
-   submit. Once approved, Mozilla hosts and signs it, and updates are
-   pushed by uploading a new zip with a bumped `version` in
-   `manifest.json`.
+5. Add release notes if prompted and submit. Once approved, the update
+   rolls out to existing installs automatically.
+
+(First-time submission looked the same, just via [the submission
+page](https://addons.mozilla.org/en-US/developers/addon/submit/upload-listed)
+instead of "Upload New Version" on an existing listing.)
 
 **One important, one-time decision:** `manifest.json`'s
 `browser_specific_settings.gecko.id` (currently set to a placeholder,
@@ -402,14 +431,15 @@ want to test `content.js`'s matching logic in isolation without a browser.
 
 ## Screenshots
 
-| General Details | Pilgrims | Settings |
-| --- | --- | --- |
-| ![General Details tab: email, mobile, city, state, country, PIN fields](preview/general-tab.png) | ![Pilgrims tab: profile bar and pilgrim count, 0 of 6](preview/pilgrims-tab.png) | ![Settings tab: privacy note, Export/Import backup buttons, supported sites](preview/settings-tab.png) |
+**Toolbar popup** - profile picker and Fill & Continue / Fill Only:
 
-> **Note:** these three images predate the full-page editor above and
-> still show General/Pilgrims/Settings as popup tabs rather than as a
-> separate browser tab. Replace them with fresh screenshots of the
-> current small popup and of `fullpage.html` when convenient.
+<img src="preview/popup.png" alt="Toolbar popup: active profile picker, Fill & Continue / Fill Only buttons, and General/Pilgrims/Settings links" width="320" />
+
+**Full-page editor** - opened from the popup's General/Pilgrims/Settings buttons:
+
+| General | Pilgrims | Settings |
+| --- | --- | --- |
+| ![Full-page editor, General tab: email, mobile, city, state, country, PIN fields](preview/fullpage-general.png) | ![Full-page editor, Pilgrims tab: profile bar and a pilgrim's name/age/gender/ID fields](preview/fullpage-pilgrims.png) | ![Full-page editor, Settings tab: privacy note, Export/Import backup buttons, About card](preview/fullpage-settings.png) |
 
 (Also copy screenshots into `store/screenshots/` when submitting to the
 Chrome Web Store or AMO listings - those require screenshots uploaded
