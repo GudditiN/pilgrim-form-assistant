@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Pilgrim Form Assistant",
   "short_name": "Pilgrim Form Assistant",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Save pilgrim details locally and fill supported TTD (Tirumala Tirupati Devasthanams) registration forms in one click. No CAPTCHA/OTP/queue/payment bypass.",
   "permissions": ["storage"],
   "host_permissions": [

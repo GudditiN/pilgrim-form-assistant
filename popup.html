@@ -35,10 +35,6 @@
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.5 3.5l3 3L7 16H4v-3l9.5-9.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
           Rename
         </button>
-        <button id="btnSaveProfile" class="chip-btn chip-btn-primary" type="button">
-          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4h9l3 3v9H4V4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 4v4h6V4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-          Save
-        </button>
         <button id="btnDeleteProfile" class="chip-btn chip-btn-danger" type="button">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 6h10M8 6V4.5h4V6M6 6l.6 9.4a1 1 0 0 0 1 .9h4.8a1 1 0 0 0 1-.9L14 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Delete
@@ -57,75 +53,15 @@
       </button>
     </section>
 
-    <nav class="tabs" role="tablist">
-      <button class="tab-btn active" data-tab="general" role="tab" type="button">General</button>
-      <button class="tab-btn" data-tab="pilgrims" role="tab" type="button">Pilgrims</button>
-      <button class="tab-btn" data-tab="settings" role="tab" type="button">Settings</button>
+    <div class="card-label" style="margin-top: 2px;">Edit profile details</div>
+    <nav class="tabs" role="navigation" aria-label="Open full-page editor">
+      <button class="tab-btn" data-tab="general" type="button">General</button>
+      <button class="tab-btn" data-tab="pilgrims" type="button">Pilgrims</button>
+      <button class="tab-btn" data-tab="settings" type="button">Settings</button>
     </nav>
-
-    <section class="card tab-panels">
-      <div id="tab-general" class="tab-panel active">
-        <div class="field-grid">
-          <label>Email ID
-            <input type="email" id="genEmail" placeholder="name@example.com" />
-          </label>
-          <label>Mobile
-            <input type="tel" id="genMobile" placeholder="10-digit mobile number" />
-          </label>
-          <label>City
-            <input type="text" id="genCity" placeholder="City" />
-          </label>
-          <label>State
-            <input type="text" id="genState" placeholder="State" />
-          </label>
-          <label>Country
-            <input type="text" id="genCountry" value="India" />
-          </label>
-          <label>PIN code
-            <input type="text" id="genPin" placeholder="6-digit PIN code" />
-          </label>
-        </div>
-      </div>
-
-      <div id="tab-pilgrims" class="tab-panel">
-        <div class="pilgrims-header">
-          <span id="pilgrimsCountLabel">PILGRIMS (0 OF 6)</span>
-          <button id="btnAddPilgrim" class="chip-btn chip-btn-primary" type="button">
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            Add pilgrim
-          </button>
-        </div>
-        <div id="pilgrimsList"></div>
-      </div>
-
-      <div id="tab-settings" class="tab-panel">
-        <p class="hint">
-          <svg viewBox="0 0 20 20" aria-hidden="true" class="hint-icon"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 9v4.5M10 6.5v.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Local-only helper. Data is stored in this browser only &mdash; nothing is sent to any server.
-        </p>
-        <div class="settings-actions">
-          <button id="btnExport" class="chip-btn" type="button">
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 14.5V16h12v-1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            Export backup
-          </button>
-          <label class="chip-btn file-btn">
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12V3m0 0 3.5 3.5M10 3 6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 14.5V16h12v-1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            Import backup
-            <input type="file" id="importFile" accept="application/json" hidden />
-          </label>
-        </div>
-        <p class="hint hint-muted">Supported sites: *.tirupatibalaji.ap.gov.in and *.ttdevasthanams.ap.gov.in</p>
-
-        <div class="about-card">
-          <img src="icons/icon48.png" alt="" class="about-icon" />
-          <div class="about-text">
-            <div class="about-name">Pilgrim Form Assistant</div>
-            <div class="about-meta">v1.0.0 &bull; Free for everyone</div>
-            <div class="about-dev">Developed by <strong>G Naganjaneyulu</strong></div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <p class="hint hint-muted" style="margin-top: 8px;">
+      Opens a full browser tab for comfortable editing, then comes back here to fill.
+    </p>
   </main>
 
   <div id="statusLine" class="status status-ready">
@@ -134,46 +70,8 @@
   </div>
 
   <footer class="footer">
-    v1.0.0 &mdash; local profiles + one-click form filling. CAPTCHA, OTP, queue, slot selection and payment are not automated.
+    v1.0.1 &mdash; local profiles + one-click form filling. CAPTCHA, OTP, queue, slot selection and payment are not automated.
   </footer>
-
-  <template id="pilgrimCardTemplate">
-    <div class="pilgrim-card">
-      <div class="pilgrim-card-header">
-        <span class="pilgrim-badge"></span>
-        <span class="pilgrim-index"></span>
-        <button class="btn-remove-pilgrim btn-icon-danger" type="button" aria-label="Remove pilgrim" title="Remove pilgrim">
-          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 6h10M8 6V4.5h4V6M6 6l.6 9.4a1 1 0 0 0 1 .9h4.8a1 1 0 0 0 1-.9L14 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      </div>
-      <div class="field-grid">
-        <label class="field-full">Full name
-          <input type="text" class="pilgrim-name" placeholder="Full name" />
-        </label>
-        <label>Age
-          <input type="number" class="pilgrim-age" min="0" max="120" placeholder="Age" />
-        </label>
-        <label>Gender
-          <select class="pilgrim-gender">
-            <option value="">&mdash;</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Transgender">Transgender</option>
-          </select>
-        </label>
-        <label>Photo ID proof
-          <select class="pilgrim-idtype">
-            <option value="">&mdash;</option>
-            <option value="Aadhaar Card">Aadhaar Card</option>
-            <option value="Passport">Passport</option>
-          </select>
-        </label>
-        <label>Photo ID number
-          <input type="text" class="pilgrim-idnumber" placeholder="ID number" />
-        </label>
-      </div>
-    </div>
-  </template>
 
   <script src="popup.js"></script>
 </body>

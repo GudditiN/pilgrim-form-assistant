@@ -24,6 +24,9 @@ const INCLUDE = [
   'popup.html',
   'popup.css',
   'popup.js',
+  'fullpage.html',
+  'fullpage.css',
+  'fullpage.js',
   'icons',
   'README.md',
   'LICENSE'

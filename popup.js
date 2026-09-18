@@ -4,6 +4,12 @@
  * Pilgrim Form Assistant - popup logic
  * All data lives in chrome.storage.local under keys: profiles, currentProfile.
  * Nothing here ever makes a network request.
+ *
+ * The popup itself is just a profile picker + fill trigger. Editing a
+ * profile's General/Pilgrims/Settings details happens in fullpage.html,
+ * opened as a normal browser tab (see openFullPage below) - see
+ * fullpage.js for that editor. Both read/write the same chrome.storage
+ * keys, so a save there is picked up here the next time the popup opens.
  */
 
 const MAX_PILGRIMS = 6;
@@ -28,27 +34,13 @@ function cacheEls() {
   els.btnNewProfile = qs('btnNewProfile');
   els.btnDuplicateProfile = qs('btnDuplicateProfile');
   els.btnRenameProfile = qs('btnRenameProfile');
-  els.btnSaveProfile = qs('btnSaveProfile');
   els.btnDeleteProfile = qs('btnDeleteProfile');
   els.btnFillContinue = qs('btnFillContinue');
   els.btnFillOnly = qs('btnFillOnly');
-  els.tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
-  els.tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
-  els.genEmail = qs('genEmail');
-  els.genMobile = qs('genMobile');
-  els.genCity = qs('genCity');
-  els.genState = qs('genState');
-  els.genCountry = qs('genCountry');
-  els.genPin = qs('genPin');
-  els.pilgrimsList = qs('pilgrimsList');
-  els.pilgrimsCountLabel = qs('pilgrimsCountLabel');
-  els.btnAddPilgrim = qs('btnAddPilgrim');
-  els.btnExport = qs('btnExport');
-  els.importFile = qs('importFile');
+  els.editTabButtons = Array.from(document.querySelectorAll('.tab-btn'));
   els.statusLine = qs('statusLine');
   els.statusIcon = qs('statusIcon');
   els.statusText = qs('statusText');
-  els.pilgrimCardTemplate = qs('pilgrimCardTemplate');
 }
 
 const FIELD_DISPLAY_NAMES = {
@@ -147,96 +139,6 @@ function renderProfileSelect() {
   }
 }
 
-function renderGeneral(profile) {
-  const g = profile.general;
-  els.genEmail.value = g.email || '';
-  els.genMobile.value = g.mobile || '';
-  els.genCity.value = g.city || '';
-  els.genState.value = g.state || '';
-  els.genCountry.value = g.country || 'India';
-  els.genPin.value = g.pin || '';
-}
-
-function pilgrimCardFromData(pilgrim, index) {
-  const frag = els.pilgrimCardTemplate.content.cloneNode(true);
-  const card = frag.querySelector('.pilgrim-card');
-  card.querySelector('.pilgrim-badge').textContent = String(index + 1);
-  card.querySelector('.pilgrim-index').textContent = 'Pilgrim';
-  card.querySelector('.pilgrim-name').value = pilgrim.name || '';
-  card.querySelector('.pilgrim-age').value = pilgrim.age || '';
-  card.querySelector('.pilgrim-gender').value = pilgrim.gender || '';
-  card.querySelector('.pilgrim-idtype').value = pilgrim.idType || '';
-  card.querySelector('.pilgrim-idnumber').value = pilgrim.idNumber || '';
-  card.querySelector('.btn-remove-pilgrim').addEventListener('click', () => {
-    card.remove();
-    renumberPilgrimCards();
-  });
-  return card;
-}
-
-function renumberPilgrimCards() {
-  const cards = els.pilgrimsList.querySelectorAll('.pilgrim-card');
-  cards.forEach((card, i) => {
-    card.querySelector('.pilgrim-badge').textContent = String(i + 1);
-  });
-  els.pilgrimsCountLabel.textContent = 'PILGRIMS (' + cards.length + ' OF ' + MAX_PILGRIMS + ')';
-  els.btnAddPilgrim.disabled = cards.length >= MAX_PILGRIMS;
-}
-
-function renderPilgrims(profile) {
-  els.pilgrimsList.innerHTML = '';
-  const pilgrims = Array.isArray(profile.pilgrims) ? profile.pilgrims.slice(0, MAX_PILGRIMS) : [];
-  pilgrims.forEach((p, i) => {
-    els.pilgrimsList.appendChild(pilgrimCardFromData(p, i));
-  });
-  renumberPilgrimCards();
-}
-
-function renderProfileIntoForm(name) {
-  const profile = state.profiles[name] || emptyProfile();
-  renderGeneral(profile);
-  renderPilgrims(profile);
-}
-
-// Accepts "+91 98765 43210", "091-9876543210", etc. and normalizes to a
-// plain 10-digit number, since that's what most TTD form mobile fields
-// expect and what our 10-digit validation checks against.
-function normalizeMobile(raw) {
-  let digits = raw.replace(/\D/g, '');
-  if (digits.length === 12 && digits.startsWith('91')) {
-    digits = digits.slice(2);
-  } else if (digits.length === 11 && digits.startsWith('0')) {
-    digits = digits.slice(1);
-  }
-  return digits;
-}
-
-function collectGeneralFromForm() {
-  return {
-    email: els.genEmail.value.trim(),
-    mobile: normalizeMobile(els.genMobile.value.trim()),
-    city: els.genCity.value.trim(),
-    state: els.genState.value.trim(),
-    country: els.genCountry.value.trim() || 'India',
-    pin: els.genPin.value.trim()
-  };
-}
-
-function collectPilgrimsFromForm() {
-  const cards = els.pilgrimsList.querySelectorAll('.pilgrim-card');
-  const pilgrims = [];
-  cards.forEach((card) => {
-    pilgrims.push({
-      name: card.querySelector('.pilgrim-name').value.trim(),
-      age: card.querySelector('.pilgrim-age').value.trim(),
-      gender: card.querySelector('.pilgrim-gender').value,
-      idType: card.querySelector('.pilgrim-idtype').value,
-      idNumber: card.querySelector('.pilgrim-idnumber').value.trim()
-    });
-  });
-  return pilgrims;
-}
-
 function validateGeneral(general) {
   const errors = [];
   if (general.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(general.email)) {
@@ -264,15 +166,6 @@ function validatePilgrims(pilgrims) {
   return errors;
 }
 
-function switchTab(tabName) {
-  els.tabButtons.forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.tab === tabName);
-  });
-  els.tabPanels.forEach((panel) => {
-    panel.classList.toggle('active', panel.id === 'tab-' + tabName);
-  });
-}
-
 function generateUniqueName(baseName, pool) {
   const existing = pool || state.profiles;
   let candidate = baseName;
@@ -292,9 +185,8 @@ async function handleNewProfile() {
   state.currentProfile = name;
   await persistState();
   renderProfileSelect();
-  renderProfileIntoForm(name);
   els.profileNameInput.value = '';
-  setStatus('Created profile "' + name + '".', 'ready');
+  setStatus('Created profile "' + name + '". Click General/Pilgrims to fill in details.', 'ready');
 }
 
 async function handleDuplicateProfile() {
@@ -309,7 +201,6 @@ async function handleDuplicateProfile() {
   state.currentProfile = name;
   await persistState();
   renderProfileSelect();
-  renderProfileIntoForm(name);
   els.profileNameInput.value = '';
   setStatus('Duplicated as "' + name + '".', 'ready');
 }
@@ -342,27 +233,6 @@ async function handleRenameProfile() {
   setStatus('Renamed "' + oldName + '" to "' + newName + '".', 'ready');
 }
 
-async function handleSaveProfile() {
-  const general = collectGeneralFromForm();
-  const pilgrims = collectPilgrimsFromForm();
-  const errors = [...validateGeneral(general), ...validatePilgrims(pilgrims)];
-  if (errors.length > 0) {
-    setStatus(errors[0], 'error');
-    return;
-  }
-  let justCreated = false;
-  if (!state.currentProfile) {
-    const typed = els.profileNameInput.value.trim();
-    state.currentProfile = generateUniqueName(typed || 'My Profile');
-    els.profileNameInput.value = '';
-    justCreated = true;
-  }
-  state.profiles[state.currentProfile] = { general, pilgrims };
-  await persistState();
-  if (justCreated) renderProfileSelect();
-  setStatus('Saved "' + state.currentProfile + '".', 'ready');
-}
-
 async function handleDeleteProfile() {
   if (!state.currentProfile) return;
   const name = state.currentProfile;
@@ -371,23 +241,13 @@ async function handleDeleteProfile() {
   state.currentProfile = remaining.length > 0 ? remaining[0] : null;
   await persistState();
   renderProfileSelect();
-  renderProfileIntoForm(state.currentProfile || '');
   setStatus('Deleted "' + name + '".', 'ready');
 }
 
 async function handleProfileSelectChange() {
   state.currentProfile = els.profileSelect.value || null;
   await persistState();
-  renderProfileIntoForm(state.currentProfile || '');
   setStatus('Switched to "' + state.currentProfile + '".', 'ready');
-}
-
-function handleAddPilgrim() {
-  const cards = els.pilgrimsList.querySelectorAll('.pilgrim-card');
-  if (cards.length >= MAX_PILGRIMS) return;
-  const card = pilgrimCardFromData({}, cards.length);
-  els.pilgrimsList.appendChild(card);
-  renumberPilgrimCards();
 }
 
 function isSupportedUrl(urlString) {
@@ -427,11 +287,17 @@ function sendFillMessage(tabId, payload, continueAfter) {
 }
 
 async function handleFill(continueAfter) {
-  const general = collectGeneralFromForm();
-  const pilgrims = collectPilgrimsFromForm();
+  if (!state.currentProfile || !state.profiles[state.currentProfile]) {
+    setStatus('No profile selected. Pick or create one above first.', 'error');
+    return;
+  }
+
+  const profile = state.profiles[state.currentProfile];
+  const general = profile.general || emptyProfile().general;
+  const pilgrims = Array.isArray(profile.pilgrims) ? profile.pilgrims.slice(0, MAX_PILGRIMS) : [];
   const errors = [...validateGeneral(general), ...validatePilgrims(pilgrims)];
   if (errors.length > 0) {
-    setStatus(errors[0], 'error');
+    setStatus(errors[0] + ' Click General/Pilgrims to fix it.', 'error');
     return;
   }
 
@@ -469,167 +335,25 @@ async function handleFill(continueAfter) {
   }
 }
 
-function download(filename, text) {
-  const blob = new Blob([text], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-function handleExport() {
-  const payload = {
-    profiles: state.profiles,
-    currentProfile: state.currentProfile,
-    exportedAt: new Date().toISOString(),
-    format: 'pilgrim-form-assistant-backup-v1'
-  };
-  download('pilgrim-form-assistant-backup.json', JSON.stringify(payload, null, 2));
-  setStatus('Exported backup.', 'ready');
-}
-
-const GENERAL_FIELD_ALIASES = {
-  email: ['email'],
-  mobile: ['mobile', 'phone'],
-  city: ['city'],
-  state: ['state'],
-  country: ['country'],
-  pin: ['pin', 'pincode', 'zip']
-};
-
-const PILGRIM_FIELD_ALIASES = {
-  name: ['name', 'fullName', 'fullname'],
-  age: ['age'],
-  gender: ['gender'],
-  idType: ['idType', 'idProof', 'idproof'],
-  idNumber: ['idNumber', 'idNo', 'idnumber']
-};
-
-function firstDefined(obj, keys) {
-  for (const key of keys) {
-    if (obj && obj[key] !== undefined && obj[key] !== null) return obj[key];
-  }
-  return '';
-}
-
-function normalizeGeneral(rawGeneral) {
-  const src = rawGeneral && typeof rawGeneral === 'object' ? rawGeneral : {};
-  const general = {};
-  for (const key of Object.keys(GENERAL_FIELD_ALIASES)) {
-    general[key] = String(firstDefined(src, GENERAL_FIELD_ALIASES[key]) || '');
-  }
-  general.country = general.country || 'India';
-  return general;
-}
-
-function normalizePilgrims(rawPilgrims) {
-  if (!Array.isArray(rawPilgrims)) return [];
-  return rawPilgrims.slice(0, MAX_PILGRIMS).map((rawPilgrim) => {
-    const src = rawPilgrim && typeof rawPilgrim === 'object' ? rawPilgrim : {};
-    const pilgrim = {};
-    for (const key of Object.keys(PILGRIM_FIELD_ALIASES)) {
-      pilgrim[key] = String(firstDefined(src, PILGRIM_FIELD_ALIASES[key]) || '');
-    }
-    return pilgrim;
-  });
-}
-
-/**
- * Accepts our own export shape (profiles keyed by profile name, each with
- * {general, pilgrims}) as well as other reasonably-shaped pilgrim-profile
- * backups (profiles keyed by an id with the display name inside the
- * profile, or pilgrim fields named fullName/idProof instead of
- * name/idType). Returns null if the file isn't a recognizable backup at
- * all.
- */
-function normalizeBackup(data) {
-  if (!data || typeof data !== 'object') return null;
-  if (!data.profiles || typeof data.profiles !== 'object') return null;
-
-  const profiles = {};
-  const keyToName = {};
-
-  for (const key of Object.keys(data.profiles)) {
-    const rawProfile = data.profiles[key];
-    if (!rawProfile || typeof rawProfile !== 'object') continue;
-
-    const displayName =
-      (typeof rawProfile.name === 'string' && rawProfile.name.trim()) || key;
-    const uniqueName = generateUniqueName(displayName, profiles);
-
-    profiles[uniqueName] = {
-      general: normalizeGeneral(rawProfile.general),
-      pilgrims: normalizePilgrims(rawProfile.pilgrims)
-    };
-    keyToName[key] = uniqueName;
-  }
-
-  if (Object.keys(profiles).length === 0) return null;
-
-  const activeKeyCandidate = data.currentProfile || data.activeProfileId;
-  let currentProfile = null;
-  if (activeKeyCandidate && keyToName[activeKeyCandidate]) {
-    currentProfile = keyToName[activeKeyCandidate];
-  } else if (activeKeyCandidate && profiles[activeKeyCandidate]) {
-    currentProfile = activeKeyCandidate;
-  } else {
-    currentProfile = Object.keys(profiles)[0];
-  }
-
-  return { profiles, currentProfile };
-}
-
-function handleImportFile(file) {
-  const reader = new FileReader();
-  reader.onload = async () => {
-    try {
-      const data = JSON.parse(String(reader.result));
-      const normalized = normalizeBackup(data);
-      if (!normalized) {
-        setStatus('Import failed: file is not a recognizable backup.', 'error');
-        return;
-      }
-      state.profiles = normalized.profiles;
-      state.currentProfile = normalized.currentProfile;
-      await persistState();
-      renderProfileSelect();
-      renderProfileIntoForm(state.currentProfile || '');
-      setStatus('Import successful.', 'ready');
-    } catch (e) {
-      setStatus('Import failed: invalid JSON file.', 'error');
-    }
-  };
-  reader.onerror = () => setStatus('Import failed: could not read file.', 'error');
-  reader.readAsText(file);
+function openFullPage(tabName) {
+  const url = chrome.runtime.getURL('fullpage.html') + '?tab=' + encodeURIComponent(tabName);
+  chrome.tabs.create({ url });
+  window.close();
 }
 
 function bindEvents() {
-  els.tabButtons.forEach((btn) => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  els.editTabButtons.forEach((btn) => {
+    btn.addEventListener('click', () => openFullPage(btn.dataset.tab));
   });
 
   els.profileSelect.addEventListener('change', handleProfileSelectChange);
   els.btnNewProfile.addEventListener('click', handleNewProfile);
   els.btnDuplicateProfile.addEventListener('click', handleDuplicateProfile);
   els.btnRenameProfile.addEventListener('click', handleRenameProfile);
-  els.btnSaveProfile.addEventListener('click', handleSaveProfile);
   els.btnDeleteProfile.addEventListener('click', handleDeleteProfile);
 
   els.btnFillContinue.addEventListener('click', () => handleFill(true));
   els.btnFillOnly.addEventListener('click', () => handleFill(false));
-
-  els.btnAddPilgrim.addEventListener('click', handleAddPilgrim);
-
-  els.btnExport.addEventListener('click', handleExport);
-  els.importFile.addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (file) handleImportFile(file);
-    e.target.value = '';
-  });
 }
 
 async function init() {
@@ -637,7 +361,6 @@ async function init() {
   bindEvents();
   await loadState();
   renderProfileSelect();
-  renderProfileIntoForm(state.currentProfile || '');
   setStatus('Ready.', 'ready');
 }
 

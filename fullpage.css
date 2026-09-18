@@ -1,0 +1,94 @@
+/* Full-page editor overrides on top of popup.css's design system.
+   This is a real browser tab (not a Chrome/Firefox popup), so - unlike
+   popup.css - width-based @media rules are safe here: there's no
+   small-probe-viewport auto-sizing pass to accidentally match. */
+
+html.fullpage-html,
+body.fullpage-body {
+  background: var(--surface-2);
+}
+
+body.fullpage-body {
+  width: auto;
+  max-width: none;
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px 48px;
+}
+
+.page-shell {
+  width: 100%;
+  max-width: 760px;
+  background: var(--surface-2);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+}
+
+.fullpage-body .header {
+  padding: 22px 28px;
+}
+
+.fullpage-body .content {
+  padding: 20px 28px 6px;
+  gap: 16px;
+}
+
+.fullpage-body .tab-panels {
+  max-height: none;
+  overflow-y: visible;
+}
+
+.fullpage-body .field-grid {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.fullpage-body .field-grid .field-full {
+  grid-column: 1 / -1;
+}
+
+.fullpage-body .pilgrim-card .field-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.fullpage-body .status {
+  margin: 0 28px;
+}
+
+@media (max-width: 700px) {
+  .fullpage-body .field-grid,
+  .fullpage-body .pilgrim-card .field-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  body.fullpage-body {
+    padding: 0;
+  }
+
+  .page-shell {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    min-height: 100vh;
+  }
+
+  .fullpage-body .header,
+  .fullpage-body .content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .fullpage-body .status {
+    margin: 0 16px;
+  }
+
+  .fullpage-body .field-grid,
+  .fullpage-body .pilgrim-card .field-grid {
+    grid-template-columns: 1fr;
+  }
+}

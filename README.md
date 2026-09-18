@@ -31,6 +31,9 @@ No account, payment, or Chrome Web Store listing required.
 
 - Saves one or more profiles (your contact details + up to 6 pilgrims per
   profile) entirely in `chrome.storage.local` on your own machine.
+- Edit General/Pilgrims/Settings in a full browser tab (opened from the
+  toolbar popup) instead of a cramped popup drawer - see
+  [Using it](#using-it).
 - On a supported page, fills matching text/select fields from your saved
   profile using label/placeholder/name-based matching.
 - Optionally clicks a clearly-labeled "Continue" / "Next" / "Proceed"
@@ -67,7 +70,9 @@ anywhere in this picture.
 
 ```mermaid
 flowchart TD
-    A["You open the popup"] --> B["Create or select a profile\n(general details + up to 6 pilgrims)"]
+    A["You open the popup"] --> B0["Click General / Pilgrims / Settings"]
+    B0 --> FP["Full-page editor opens\nin its own browser tab"]
+    FP --> B["Enter general details\n+ up to 6 pilgrims, then Save"]
     B --> C[("chrome.storage.local\non your device only")]
     C --> B
 
@@ -259,16 +264,33 @@ a brand-new, unrelated add-on.
 
 ## Using it
 
+The toolbar popup (the small window that opens when you click the
+extension's icon) is a quick profile picker and fill trigger. Editing a
+profile's details happens in a full browser tab instead, since typing
+out up to 6 pilgrims' details in a tiny popup drawer is cramped.
+
 1. Open the extension popup and create a profile (**New**) under the
    profile bar, or select an existing one.
-2. Fill in **General Details** (email, mobile, city, state, country, PIN)
-   and add up to 6 people under **Pilgrims**.
-3. Click **Save** to persist the profile.
-4. Navigate to a supported TTD registration form.
+2. Click **General**, **Pilgrims**, or **Settings** under "Edit profile
+   details" - each opens a full browser tab (`fullpage.html`) with a
+   roomier version of the same editor, and the popup closes.
+3. In that tab, fill in **General** (email, mobile, city, state, country,
+   PIN) and add up to 6 people under **Pilgrims**, then click **Save**.
+   You can also manage profiles (New/Duplicate/Rename/Delete) and
+   Export/Import backups from there - **Settings** has the same controls
+   the popup used to.
+4. Reopen the toolbar icon on your TTD form tab. Since both the popup and
+   the full-page editor read/write the same `chrome.storage.local` data,
+   the popup picks up your saved changes automatically - no reload or
+   sync step needed.
 5. Click **Fill Only** to fill the visible fields, or **Fill & Continue**
    to fill and then click a safe "Continue"/"Next"/"Proceed" button if one
    is present. CAPTCHA, OTP, queue, slot-selection, and payment steps are
    always left for you to complete manually.
+
+Filling only works from the small popup (not the full-page editor),
+since it needs the TTD form to be the browser's active tab at the moment
+you click Fill.
 
 ## Data & privacy
 
@@ -285,7 +307,10 @@ computer). Imported files are validated for shape before being loaded.
 pilgrim-form-assistant/
 ├── manifest.json       # MV3 manifest, minimal permissions, cross-browser
 │                        # (Chrome/Edge + Firefox via browser_specific_settings)
-├── popup.html/.css/.js # Profile management + fill-trigger UI
+├── popup.html/.css/.js       # Toolbar popup: profile picker + fill trigger
+├── fullpage.html/.css/.js    # Full-tab editor for General/Pilgrims/Settings
+│                              # (opened from the popup; shares the same
+│                              # chrome.storage.local data)
 ├── content.js          # Generic, site-agnostic form-filling engine
 ├── site-mappings.js    # TTD-site-specific keyword hints (kept separate
 │                        # from the generic engine in content.js)
@@ -360,6 +385,7 @@ node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8'))"
 
 # every script parses cleanly
 node --check popup.js
+node --check fullpage.js
 node --check content.js
 node --check background.js
 node --check site-mappings.js
@@ -376,15 +402,18 @@ want to test `content.js`'s matching logic in isolation without a browser.
 
 ## Screenshots
 
-All from the actual popup, unpacked and running.
-
 | General Details | Pilgrims | Settings |
 | --- | --- | --- |
 | ![General Details tab: email, mobile, city, state, country, PIN fields](preview/general-tab.png) | ![Pilgrims tab: profile bar and pilgrim count, 0 of 6](preview/pilgrims-tab.png) | ![Settings tab: privacy note, Export/Import backup buttons, supported sites](preview/settings-tab.png) |
 
-(Also copy these into `store/screenshots/` when submitting to the Chrome
-Web Store or AMO listings - those require screenshots uploaded through
-each store's own dashboard, not linked from the repo.)
+> **Note:** these three images predate the full-page editor above and
+> still show General/Pilgrims/Settings as popup tabs rather than as a
+> separate browser tab. Replace them with fresh screenshots of the
+> current small popup and of `fullpage.html` when convenient.
+
+(Also copy screenshots into `store/screenshots/` when submitting to the
+Chrome Web Store or AMO listings - those require screenshots uploaded
+through each store's own dashboard, not linked from the repo.)
 
 ## Developer
 
