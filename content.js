@@ -18,8 +18,16 @@
  */
 
 const FILL_MESSAGE_TYPE = 'PFA_FILL_FORM';
-const MAX_DYNAMIC_RETRIES = 3;
-const RETRY_WAIT_MS = 600;
+const PING_MESSAGE_TYPE = 'PFA_PING';
+// Instead of sleeping a fixed time, every wait below polls the page this
+// often and carries on the moment the thing it needs is there.
+const POLL_MS = 25;
+// Upper bounds on those waits (only reached when something never shows up).
+const OPTIONS_TIMEOUT_MS = 500;
+const MENU_CLOSE_TIMEOUT_MS = 300;
+const DEFERRED_TIMEOUT_MS = 1500;
+const FIELDS_APPEAR_TIMEOUT_MS = 1800;
+const FIELDS_APPEAR_POLL_MS = 100;
 
 const GENERAL_KEYWORDS = {
   email: ['email', 'e-mail', 'email id', 'mail id'],
@@ -328,6 +336,39 @@ function matchOptionElement(options, desiredText) {
   return match || null;
 }
 
+function dispatchPress(el) {
+  const opts = { bubbles: true, cancelable: true, view: window, button: 0 };
+  if (typeof PointerEvent === 'function') el.dispatchEvent(new PointerEvent('pointerdown', opts));
+  el.dispatchEvent(new MouseEvent('mousedown', opts));
+  if (typeof PointerEvent === 'function') el.dispatchEvent(new PointerEvent('pointerup', opts));
+  el.dispatchEvent(new MouseEvent('mouseup', opts));
+}
+
+function dispatchOpenKey(el) {
+  if (typeof el.focus === 'function') el.focus();
+  el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40, bubbles: true, cancelable: true }));
+}
+
+// Dropdown libraries disagree on what opens them: some listen for click,
+// others (e.g. MUI Select, react-select) only for mousedown, others for
+// the keyboard. Tries each in turn - moving on only when the previous one
+// opened nothing, so a menu is never toggled open and shut again - and
+// resolves with the option findMatch() returns once a menu shows a match.
+// isOpen() says whether the trigger has opened anything at all.
+async function openAndFind(triggerEl, findMatch, isOpen) {
+  const openers = [(el) => el.click(), dispatchPress, dispatchOpenKey];
+  const perOpenerMs = Math.max(150, Math.floor(OPTIONS_TIMEOUT_MS / 2));
+  for (let i = 0; i < openers.length; i++) {
+    openers[i](triggerEl);
+    const timeout = i === openers.length - 1 ? OPTIONS_TIMEOUT_MS : perOpenerMs;
+    const match = await waitFor(findMatch, timeout);
+    if (match) return match;
+    // Something opened but nothing in it matches - another opener won't help.
+    if (isOpen()) return null;
+  }
+  return null;
+}
+
 // Many modern government/enterprise forms build "select" dropdowns as a
 // clickable trigger (following the ARIA combobox/listbox pattern) plus a
 // popup list of role="option" items, rather than a native <select>. This
@@ -338,17 +379,22 @@ function matchOptionElement(options, desiredText) {
 async function fillAriaCombobox(triggerEl, desiredText) {
   if (!desiredText) return false;
 
-  triggerEl.click();
-  await waitBeforeRetry(150);
-  let options = findVisibleOptionElements();
-  if (options.length === 0) {
-    await waitBeforeRetry(250);
-    options = findVisibleOptionElements();
-  }
+  // Options already on screen (e.g. a previous menu still animating
+  // closed) are ignored, so we only pick from the list this click opened.
+  const before = new Set(findVisibleOptionElements());
+  const freshOptions = () => findVisibleOptionElements().filter((o) => !before.has(o));
+  const freshMatch = await openAndFind(
+    triggerEl,
+    () => matchOptionElement(freshOptions(), desiredText),
+    () => freshOptions().length > 0 || triggerEl.getAttribute('aria-expanded') === 'true'
+  );
+  const match = freshMatch || matchOptionElement(findVisibleOptionElements(), desiredText);
 
-  const match = matchOptionElement(options, desiredText);
   if (match) {
     match.click();
+    // Let this menu close before the next dropdown opens, so its options
+    // can't be mistaken for the next menu's.
+    await waitFor(() => !match.isConnected || !isComputedVisible(match), MENU_CLOSE_TIMEOUT_MS);
     return true;
   }
 
@@ -379,20 +425,23 @@ async function fillReadonlyPickerField(triggerEl, desiredText) {
   if (!desiredText) return false;
 
   const before = new Set(collectVisibleLeafTextElements());
-  triggerEl.click();
-  await waitBeforeRetry(200);
-  let after = collectVisibleLeafTextElements();
-  let newlyVisible = after.filter((e) => !before.has(e));
-  if (newlyVisible.length === 0) {
-    await waitBeforeRetry(300);
-    after = collectVisibleLeafTextElements();
-    newlyVisible = after.filter((e) => !before.has(e));
-  }
+  let after = [];
+  let newlyVisible = [];
+  await openAndFind(
+    triggerEl,
+    () => {
+      after = collectVisibleLeafTextElements();
+      newlyVisible = after.filter((e) => !before.has(e));
+      return newlyVisible.length > 0 ? matchOptionElement(newlyVisible, desiredText) : null;
+    },
+    () => newlyVisible.length > 0
+  );
 
   const pool = newlyVisible.length > 0 ? newlyVisible : after;
   const match = matchOptionElement(pool, desiredText);
   if (match) {
     match.click();
+    await waitFor(() => !match.isConnected || !isComputedVisible(match), MENU_CLOSE_TIMEOUT_MS);
     return true;
   }
 
@@ -406,7 +455,11 @@ async function attemptFill(el, comboTrigger, pickerInput, value) {
   return fillOneField(el, value);
 }
 
-async function fillForm(payload) {
+// Every visible, fillable field on the page that matched a profile
+// category, in page order, with the profile value meant for it (undefined
+// when the profile has none). The Nth field of a pilgrim category gets the
+// Nth pilgrim's value.
+function matchFieldsToProfile(payload) {
   const general = (payload && payload.general) || {};
   const pilgrims = (payload && payload.pilgrims) || [];
 
@@ -420,20 +473,7 @@ async function fillForm(payload) {
 
   const fields = Array.from(document.querySelectorAll(FIELD_LIKE_SELECTOR));
   const pilgrimCounters = { name: 0, age: 0, gender: 0, idType: 0, idNumber: 0 };
-  let filledCount = 0;
-  // Fields that matched and have a value, but are disabled right now.
-  // Some forms only enable a field (e.g. Gender, ID Proof) once an
-  // earlier field has been filled in - we retry these once, after a
-  // short pause, instead of giving up on the first pass.
-  const deferred = [];
-  // Matched fields (had a category + a value to put in them) that still
-  // did not end up filled - surfaced back to the popup as a short "these
-  // need manual entry" note.
-  const failures = [];
-
-  function describeFailure(key) {
-    failures.push({ key });
-  }
+  const matches = [];
 
   for (const el of fields) {
     const comboTrigger = isAriaComboTrigger(el);
@@ -449,29 +489,104 @@ async function fillForm(payload) {
     if (!match) continue;
 
     let value;
+    let index = null;
     if (match.scope === 'general') {
       value = general[match.key];
     } else {
-      const index = pilgrimCounters[match.key]++;
+      index = pilgrimCounters[match.key]++;
       value = index < pilgrims.length ? pilgrims[index][match.key] : undefined;
     }
+    matches.push({ el, comboTrigger, pickerInput, key: match.key, scope: match.scope, index, value });
+  }
+  return matches;
+}
+
+// The matched field `target` belongs to (it may be a node inside a custom
+// dropdown trigger), or null if it isn't a field we recognize.
+function matchFieldForElement(target, payload) {
+  if (!target || !target.closest) return null;
+  const fieldEl = target.closest(FIELD_LIKE_SELECTOR);
+  if (!fieldEl) return null;
+  return matchFieldsToProfile(payload).find((m) => m.el === fieldEl) || null;
+}
+
+// Fills one field from matchFieldsToProfile(). If its dropdown is already
+// open (the user just clicked it), picks the option straight from the open
+// list instead of clicking the trigger again, which would close it.
+async function fillMatchedField(m) {
+  if (m.comboTrigger) {
+    const open = matchOptionElement(findVisibleOptionElements(), m.value);
+    if (open) {
+      open.click();
+      return true;
+    }
+  }
+  const ok = await attemptFill(m.el, m.comboTrigger, m.pickerInput, m.value);
+  if (!ok) return false;
+  // Plain text boxes: the site may reset a script-set value straight away.
+  if (!m.comboTrigger && !m.pickerInput && m.el.tagName.toLowerCase() !== 'select') {
+    return normalizeForCompare(m.el.value) === normalizeForCompare(m.value);
+  }
+  return true;
+}
+
+async function fillForm(payload) {
+  let filledCount = 0;
+  // Fields that matched and have a value, but are disabled right now.
+  // Some forms only enable a field (e.g. Gender, ID Proof) once an
+  // earlier field has been filled in - we retry these once, after a
+  // short pause, instead of giving up on the first pass.
+  const deferred = [];
+  // Dropdown/picker fields need a click-and-wait each, so they run after
+  // every plain text box and native <select> has been filled in one go.
+  const interactive = [];
+  // Matched fields (had a category + a value to put in them) that still
+  // did not end up filled - surfaced back to the popup as a short "these
+  // need manual entry" note.
+  const failures = [];
+
+  function describeFailure(key) {
+    failures.push({ key });
+  }
+
+  for (const { el, comboTrigger, pickerInput, key, value } of matchFieldsToProfile(payload)) {
     if (value === undefined || value === null || value === '') continue;
 
     if (!pickerInput && isFieldDisabled(el, comboTrigger)) {
-      deferred.push({ el, comboTrigger, pickerInput, value, key: match.key });
+      deferred.push({ el, comboTrigger, pickerInput, value, key });
       continue;
     }
 
-    if (await attemptFill(el, comboTrigger, pickerInput, value)) {
+    if (comboTrigger || pickerInput) {
+      interactive.push({ el, comboTrigger, pickerInput, value, key });
+      continue;
+    }
+
+    if (fillOneField(el, value)) {
       filledCount += 1;
     } else {
-      describeFailure(match.key);
+      describeFailure(key);
     }
   }
 
+  for (const item of interactive) {
+    if (await attemptFill(item.el, item.comboTrigger, item.pickerInput, item.value)) {
+      filledCount += 1;
+    } else {
+      describeFailure(item.key);
+    }
+  }
+
+  // Fields switched on by an earlier answer: fill each as soon as it enables.
   let remainingDeferred = deferred;
-  for (let attempt = 0; attempt < 3 && remainingDeferred.length > 0; attempt++) {
-    await waitBeforeRetry(400);
+  const deferredDeadline = performance.now() + DEFERRED_TIMEOUT_MS;
+  while (remainingDeferred.length > 0 && performance.now() < deferredDeadline) {
+    const pending = remainingDeferred;
+    const ready = await waitFor(
+      () => pending.some((item) => !isFieldDisabled(item.el, item.comboTrigger)),
+      deferredDeadline - performance.now()
+    );
+    if (!ready) break;
     const stillDisabled = [];
     for (const item of remainingDeferred) {
       if (isFieldDisabled(item.el, item.comboTrigger)) {
@@ -513,18 +628,61 @@ function waitBeforeRetry(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Resolves with check()'s first truthy result, or null after timeoutMs.
+// Re-checks the moment the page's DOM changes (so a menu that opens
+// instantly costs ~nothing), plus every POLL_MS for changes that only
+// show up in styles/visibility.
+function waitFor(check, timeoutMs) {
+  const first = check();
+  if (first || timeoutMs <= 0) return Promise.resolve(first || null);
+
+  return new Promise((resolve) => {
+    let done = false;
+    let queued = false;
+    const finish = (value) => {
+      if (done) return;
+      done = true;
+      observer.disconnect();
+      clearInterval(poll);
+      clearTimeout(timeout);
+      resolve(value);
+    };
+    const recheck = () => {
+      queued = false;
+      if (done) return;
+      const result = check();
+      if (result) finish(result);
+    };
+    const observer = new MutationObserver(() => {
+      if (queued) return;
+      queued = true;
+      queueMicrotask(recheck);
+    });
+    observer.observe(document.documentElement, {
+      childList: true, subtree: true, attributes: true, characterData: true
+    });
+    const poll = setInterval(recheck, POLL_MS);
+    const timeout = setTimeout(() => finish(check() || null), timeoutMs);
+  });
+}
+
+// If the form hasn't rendered yet (nothing matched), keep trying briefly.
 async function fillFormWithDynamicRetry(payload) {
   let result = await fillForm(payload);
-  let attempt = 0;
-  while (result.filled === 0 && attempt < MAX_DYNAMIC_RETRIES) {
-    await waitBeforeRetry(RETRY_WAIT_MS);
+  const deadline = performance.now() + FIELDS_APPEAR_TIMEOUT_MS;
+  while (result.filled === 0 && performance.now() < deadline) {
+    await waitBeforeRetry(FIELDS_APPEAR_POLL_MS);
     result = await fillForm(payload);
-    attempt += 1;
   }
   return result;
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // The popup pings to learn whether this tab can be filled.
+  if (message && message.type === PING_MESSAGE_TYPE) {
+    sendResponse({ ok: true });
+    return false;
+  }
   if (!message || message.type !== FILL_MESSAGE_TYPE) return false;
 
   const payload = message.payload || { general: {}, pilgrims: [] };

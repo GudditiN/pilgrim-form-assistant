@@ -10,7 +10,7 @@ required.
 
 <table>
 <tr>
-<td><img src="preview/popup.png" alt="Pilgrim Form Assistant toolbar popup: profile picker and Fill & Continue / Fill Only buttons" width="260" /></td>
+<td><img src="preview/popup.png" alt="Pilgrim Form Assistant toolbar popup: profile picker and Fill all details / Fill Only buttons" width="260" /></td>
 <td><img src="preview/fullpage-pilgrims.png" alt="Full-page editor showing the Pilgrims tab" width="420" /></td>
 </tr>
 </table>
@@ -89,13 +89,13 @@ flowchart TD
     B --> C[("chrome.storage.local\non your device only")]
     C --> B
 
-    A --> D["Click Fill Only\nor Fill & Continue"]
+    A --> D["Click Fill Only\nor Fill all details"]
     D --> E["popup.js sends your profile\nto the active tab"]
     E --> F["content.js scans the visible\nform fields on the page"]
     F --> G["site-mappings.js supplies\nTTD-specific field hints"]
     G --> H["Matching engine pairs each field\nto a general or pilgrim value"]
     H --> I["Matched fields are filled\n(captcha / OTP / payment fields\nare always skipped)"]
-    I --> J{"Fill & Continue?"}
+    I --> J{"Fill all details?"}
     J -- Yes --> K["Look for a safe\nContinue / Next / Proceed button"]
     K --> L["Click it, if found"]
     J -- No --> M["Stop here"]
@@ -155,7 +155,7 @@ can dismiss.
     **General** or **Pilgrims** to open the full-page editor in a new
     tab, fill in your details, and click **Save** there.
 11. Back on the popup, navigate to a supported TTD registration page and
-    click **Fill Only** or **Fill & Continue**.
+    click **Fill Only** or **Fill all details** (fills, then clicks Continue).
 
 <img src="preview/fullpage-pilgrims.png" alt="Full-page editor showing the Pilgrims tab with a saved pilgrim's details" width="420" />
 
@@ -312,7 +312,7 @@ out up to 6 pilgrims' details in a tiny popup drawer is cramped.
    the full-page editor read/write the same `chrome.storage.local` data,
    the popup picks up your saved changes automatically - no reload or
    sync step needed.
-5. Click **Fill Only** to fill the visible fields, or **Fill & Continue**
+5. Click **Fill Only** to fill the visible fields, or **Fill all details** (fills, then clicks Continue)
    to fill and then click a safe "Continue"/"Next"/"Proceed" button if one
    is present. CAPTCHA, OTP, queue, slot-selection, and payment steps are
    always left for you to complete manually.
@@ -341,6 +341,7 @@ pilgrim-form-assistant/
 │                              # (opened from the popup; shares the same
 │                              # chrome.storage.local data)
 ├── content.js          # Generic, site-agnostic form-filling engine
+├── onpage-button.js    # Floating Om icon on TTD form pages - one click fills details
 ├── site-mappings.js    # TTD-site-specific keyword hints (kept separate
 │                        # from the generic engine in content.js)
 ├── background.js       # No-op background script, no network
@@ -431,9 +432,9 @@ want to test `content.js`'s matching logic in isolation without a browser.
 
 ## Screenshots
 
-**Toolbar popup** - profile picker and Fill & Continue / Fill Only:
+**Toolbar popup** - profile picker and Fill all details / Fill Only:
 
-<img src="preview/popup.png" alt="Toolbar popup: active profile picker, Fill & Continue / Fill Only buttons, and General/Pilgrims/Settings links" width="320" />
+<img src="preview/popup.png" alt="Toolbar popup: active profile picker, Fill all details / Fill Only buttons, and General/Pilgrims/Settings links" width="320" />
 
 **Full-page editor** - opened from the popup's General/Pilgrims/Settings buttons:
 

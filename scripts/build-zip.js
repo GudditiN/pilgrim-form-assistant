@@ -20,6 +20,7 @@ const INCLUDE = [
   'manifest.json',
   'background.js',
   'content.js',
+  'onpage-button.js',
   'site-mappings.js',
   'popup.html',
   'popup.css',

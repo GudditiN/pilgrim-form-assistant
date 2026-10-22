@@ -14,13 +14,25 @@
 
 const MAX_PILGRIMS = 6;
 const FILL_MESSAGE_TYPE = 'PFA_FILL_FORM';
+const PING_MESSAGE_TYPE = 'PFA_PING';
 
 const SUPPORTED_HOST_SUFFIXES = ['.tirupatibalaji.ap.gov.in', '.ttdevasthanams.ap.gov.in'];
+
+// While the popup is open it re-checks the active tab once a second, so the
+// fill buttons switch on/off as the user navigates. The popup's document is
+// destroyed when it closes, which also ends the timer - nothing runs in the
+// background.
+const SITE_CHECK_INTERVAL_MS = 1000;
 
 let state = {
   profiles: {},
   currentProfile: null
 };
+
+let onSupportedSite = false;
+let siteHint = '';
+let fillInProgress = false;
+let siteCheckTimer = null;
 
 const els = {};
 
@@ -37,6 +49,8 @@ function cacheEls() {
   els.btnDeleteProfile = qs('btnDeleteProfile');
   els.btnFillContinue = qs('btnFillContinue');
   els.btnFillOnly = qs('btnFillOnly');
+  els.siteBadge = qs('siteBadge');
+  els.siteBadgeText = qs('siteBadgeText');
   els.editTabButtons = Array.from(document.querySelectorAll('.tab-btn'));
   els.statusLine = qs('statusLine');
   els.statusIcon = qs('statusIcon');
@@ -286,7 +300,106 @@ function sendFillMessage(tabId, payload, continueAfter) {
   });
 }
 
+function renderFillAvailability() {
+  const enabled = onSupportedSite && !fillInProgress;
+  els.btnFillContinue.disabled = !enabled;
+  els.btnFillOnly.disabled = !enabled;
+  const badgeClass = 'site-badge ' + (onSupportedSite ? 'site-badge-on' : 'site-badge-off');
+  if (els.siteBadge.className !== badgeClass) els.siteBadge.className = badgeClass;
+  setTextIfChanged(els.siteBadgeText, onSupportedSite
+    ? 'On a supported TTD site — ready to fill.'
+    : siteHint || 'Open a TTD registration page to enable filling.');
+}
+
+function setTextIfChanged(el, text) {
+  if (el.textContent !== text) el.textContent = text;
+}
+
+// Resolves true if this extension's content script is running in the tab.
+// It is only injected on supported TTD pages, so a reply means we can fill,
+// even when Chrome doesn't expose tab.url to the popup.
+function pingContentScript(tabId) {
+  return new Promise((resolve) => {
+    try {
+      chrome.tabs.sendMessage(tabId, { type: PING_MESSAGE_TYPE }, (response) => {
+        if (chrome.runtime.lastError) {
+          resolve(false);
+          return;
+        }
+        resolve(!!(response && response.ok));
+      });
+    } catch (e) {
+      resolve(false);
+    }
+  });
+}
+
+function hostnameOf(urlString) {
+  try {
+    return new URL(urlString).hostname;
+  } catch (e) {
+    return '';
+  }
+}
+
+async function refreshSiteStatus() {
+  const tab = await getActiveTab();
+  let supported = !!(tab && tab.url && isSupportedUrl(tab.url));
+  if (!supported && tab && typeof tab.id === 'number') {
+    supported = await pingContentScript(tab.id);
+  }
+  if (!supported) {
+    const host = tab && tab.url ? hostnameOf(tab.url) : '';
+    if (host && /tirupati|ttd|tirumala/i.test(host)) {
+      siteHint = host + ' is not a supported TTD address yet.';
+    } else if (host) {
+      siteHint = 'Open a TTD registration page to enable filling.';
+    } else {
+      siteHint = 'Can’t see this tab. If it’s a TTD page, reload it and check the extension’s site access.';
+    }
+    setTextIfChanged(els.siteBadgeText, siteHint);
+  }
+  if (supported === onSupportedSite && els.siteBadge.dataset.checked) return;
+  els.siteBadge.dataset.checked = '1';
+  const becameSupported = supported && !onSupportedSite;
+  onSupportedSite = supported;
+  renderFillAvailability();
+  // Focus the default button so Enter fills straight away.
+  if (becameSupported && document.activeElement === document.body) {
+    els.btnFillContinue.focus();
+  }
+}
+
+function startSiteChecks() {
+  stopSiteChecks();
+  const first = refreshSiteStatus();
+  siteCheckTimer = setInterval(refreshSiteStatus, SITE_CHECK_INTERVAL_MS);
+  return first;
+}
+
+function stopSiteChecks() {
+  if (siteCheckTimer !== null) {
+    clearInterval(siteCheckTimer);
+    siteCheckTimer = null;
+  }
+}
+
 async function handleFill(continueAfter) {
+  if (!onSupportedSite || fillInProgress) {
+    setStatus('Open a supported TTD form page first.', 'error');
+    return;
+  }
+  fillInProgress = true;
+  renderFillAvailability();
+  try {
+    await runFill(continueAfter);
+  } finally {
+    fillInProgress = false;
+    renderFillAvailability();
+  }
+}
+
+async function runFill(continueAfter) {
   if (!state.currentProfile || !state.profiles[state.currentProfile]) {
     setStatus('No profile selected. Pick or create one above first.', 'error');
     return;
@@ -304,11 +417,11 @@ async function handleFill(continueAfter) {
   setStatus('Filling form...', 'busy');
 
   const tab = await getActiveTab();
-  if (!tab || !tab.url) {
+  if (!tab || typeof tab.id !== 'number') {
     setStatus('Could not access the current tab.', 'error');
     return;
   }
-  if (!isSupportedUrl(tab.url)) {
+  if (!isSupportedUrl(tab.url) && !(await pingContentScript(tab.id))) {
     setStatus('This page is not a supported TTD form site.', 'error');
     return;
   }
@@ -354,6 +467,21 @@ function bindEvents() {
 
   els.btnFillContinue.addEventListener('click', () => handleFill(true));
   els.btnFillOnly.addEventListener('click', () => handleFill(false));
+
+  // Fill & Continue is the default action: Enter anywhere outside a text
+  // field / control triggers it, but only when on a supported site.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.repeat || e.isComposing) return;
+    const t = e.target;
+    if (t && t !== document.body && t.matches('input, select, textarea, button')) return;
+    e.preventDefault();
+    handleFill(true);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopSiteChecks();
+    else startSiteChecks();
+  });
 }
 
 async function init() {
@@ -362,6 +490,10 @@ async function init() {
   await loadState();
   renderProfileSelect();
   setStatus('Ready.', 'ready');
+  // Reveal only once the fill buttons/badge are in their real state; the
+  // timeout is a safety net in case the tab check never answers.
+  await Promise.race([startSiteChecks(), new Promise((r) => setTimeout(r, 300))]);
+  document.body.classList.remove('pfa-loading');
 }
 
 document.addEventListener('DOMContentLoaded', init);

@@ -2,19 +2,39 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Pilgrim Form Assistant</title>
 <link rel="stylesheet" href="popup.css" />
 </head>
-<body>
+<body class="pfa-loading">
   <header class="header">
     <img src="icons/icon48.png" alt="" class="logo" />
     <div class="header-text">
       <h1>Pilgrim Form Assistant</h1>
-      <p class="subtitle">Smart Form Fill &bull; Fast &bull; Simple &bull; Accurate</p>
+      <p class="subtitle">Om Namo Venkatesaya &bull; One-click TTD form fill</p>
     </div>
   </header>
 
   <main class="content">
+    <div id="siteBadge" class="site-badge site-badge-off" role="status" aria-live="polite">
+      <span class="site-dot" aria-hidden="true"></span>
+      <span id="siteBadgeText">Checking current tab…</span>
+    </div>
+
+    <section class="fill-actions">
+      <button id="btnFillContinue" class="btn-fill btn-fill-continue" type="button" disabled>
+        <span class="btn-main">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 2 4 12h5l-1 6 7-10h-5l1-6z" fill="currentColor"/></svg>
+          <span>Fill all details</span>
+        </span>
+        <span class="btn-sub">then clicks Continue (never pays or submits)</span>
+      </button>
+      <button id="btnFillOnly" class="btn-fill btn-fill-only" type="button" disabled>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 13.5V16h2.5l7.4-7.4-2.5-2.5L4 13.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12.5 4.5l2 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span>Fill Only</span>
+      </button>
+    </section>
+
     <section class="card profile-card">
       <div class="card-label">Active profile</div>
       <div class="select-wrap">
@@ -42,18 +62,7 @@
       </div>
     </section>
 
-    <section class="fill-actions">
-      <button id="btnFillContinue" class="btn-fill btn-fill-continue" type="button">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 2 4 12h5l-1 6 7-10h-5l1-6z" fill="currentColor"/></svg>
-        <span>Fill &amp; Continue</span>
-      </button>
-      <button id="btnFillOnly" class="btn-fill btn-fill-only" type="button">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 13.5V16h2.5l7.4-7.4-2.5-2.5L4 13.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12.5 4.5l2 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        <span>Fill Only</span>
-      </button>
-    </section>
-
-    <div class="card-label" style="margin-top: 2px;">Edit profile details</div>
+    <div class="card-label">Edit profile details</div>
     <nav class="tabs" role="navigation" aria-label="Open full-page editor">
       <button class="tab-btn" data-tab="general" type="button">General</button>
       <button class="tab-btn" data-tab="pilgrims" type="button">Pilgrims</button>
@@ -70,7 +79,7 @@
   </div>
 
   <footer class="footer">
-    v1.0.1 &mdash; local profiles + one-click form filling. CAPTCHA, OTP, queue, slot selection and payment are not automated.
+    v1.2.0 &mdash; local profiles + one-click form filling. CAPTCHA, OTP, queue, slot selection and payment are not automated.
   </footer>
 
   <script src="popup.js"></script>

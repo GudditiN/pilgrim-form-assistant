@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Pilgrim Form Assistant",
   "short_name": "Pilgrim Form Assistant",
-  "version": "1.0.1",
+  "version": "1.2.0",
   "description": "Save pilgrim details locally and fill supported TTD (Tirumala Tirupati Devasthanams) registration forms in one click. No CAPTCHA/OTP/queue/payment bypass.",
   "permissions": ["storage"],
   "host_permissions": [
@@ -28,9 +28,18 @@
         "https://*.tirupatibalaji.ap.gov.in/*",
         "https://*.ttdevasthanams.ap.gov.in/*"
       ],
-      "js": ["site-mappings.js", "content.js"],
+      "js": ["site-mappings.js", "content.js", "onpage-button.js"],
       "run_at": "document_idle",
       "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/fill-pin.png"],
+      "matches": [
+        "https://*.tirupatibalaji.ap.gov.in/*",
+        "https://*.ttdevasthanams.ap.gov.in/*"
+      ]
     }
   ],
   "icons": {
@@ -45,6 +54,9 @@
       "data_collection_permissions": {
         "required": ["none"]
       }
+    },
+    "gecko_android": {
+      "strict_min_version": "121.0"
     }
   }
 }

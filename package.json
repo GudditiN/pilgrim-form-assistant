@@ -1,6 +1,6 @@
 {
   "name": "pilgrim-form-assistant",
-  "version": "1.0.1",
+  "version": "1.2.0",
   "private": true,
   "description": "Chrome extension: local profile-based form filling for TTD registration forms.",
   "scripts": {
