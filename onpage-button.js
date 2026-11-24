@@ -209,6 +209,7 @@
         .tip .t-v { font-weight: 700; overflow-wrap: anywhere; }
         .tip .t-sub { display: block; font-size: 11px; color: #6e4f2a; }
         .tip.ok { border-color: #1f8a50; background: #e9f7ee; }
+        .tip.err { border-color: #d64550; background: #fdecee; }
 
         @keyframes spin { to { transform: rotate(360deg); } }
         @media (prefers-reduced-motion: reduce) {
@@ -570,6 +571,17 @@
     const m = tipFor;
     // After the page's own input handlers have seen the paste.
     setTimeout(() => { if (tipFor === m) advanceFrom(m); }, 0);
+  }, true);
+  // Some fields (Age on TTD) refuse pasted text. If a paste leaves the field
+  // without its value, say so and ask the user to type it; the input listener
+  // above moves on once what they type matches.
+  document.addEventListener('paste', (e) => {
+    if (!tipFor || e.target !== tipFor.el || !e.isTrusted || isDropdown(tipFor)) return;
+    const m = tipFor;
+    setTimeout(() => {
+      if (tipFor !== m || alreadyHasValue(m)) return;
+      showTip(m, String(m.value), fieldCaption(m) + ' — this field blocks paste, please type it in', 'err', 0);
+    }, 150);
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideTip(); }, true);
   window.addEventListener('scroll', () => { if (tipFor) positionTip(); }, true);
