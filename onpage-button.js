@@ -208,6 +208,9 @@
         .tip[hidden] { display: none; }
         .tip .t-v { font-weight: 700; overflow-wrap: anywhere; }
         .tip .t-sub { display: block; font-size: 11px; color: #6e4f2a; }
+        .tip.big { padding: 10px 16px; border-width: 2px; max-width: min(380px, calc(100vw - 32px)); }
+        .tip.big .t-v { font-size: 32px; font-weight: 800; line-height: 1.15; letter-spacing: 0.5px; }
+        .tip.big .t-sub { font-size: 13px; font-weight: 600; margin-top: 2px; }
         .tip.ok { border-color: #1f8a50; background: #e9f7ee; }
         .tip.err { border-color: #d64550; background: #fdecee; }
 
@@ -497,7 +500,9 @@
     tipFor = m;
     ui.tipValue.textContent = value;
     ui.tipSub.textContent = sub;
-    ui.tip.className = 'tip' + (kind ? ' ' + kind : '');
+    // Values the user reads and enters by hand are shown large and bold.
+    const big = ['age', 'gender', 'idType'].includes(m.key) ? ' big' : '';
+    ui.tip.className = 'tip' + (kind ? ' ' + kind : '') + big;
     ui.tip.hidden = false;
     positionTip();
     if (hideAfterMs) tipTimer = setTimeout(() => { if (tipFor === m) hideTip(); }, hideAfterMs);
