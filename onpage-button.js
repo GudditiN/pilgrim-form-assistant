@@ -575,13 +575,20 @@
   // Some fields (Age on TTD) refuse pasted text. If a paste leaves the field
   // without its value, say so and ask the user to type it; the input listener
   // above moves on once what they type matches.
-  document.addEventListener('paste', (e) => {
-    if (!tipFor || e.target !== tipFor.el || !e.isTrusted || isDropdown(tipFor)) return;
+  // Sites may cancel the paste event or the Cmd/Ctrl+V keypress itself, so
+  // both are watched; either way the check runs once the page has had its say.
+  function checkPasteLanded(e) {
+    if (!tipFor || !e.isTrusted || isDropdown(tipFor)) return;
+    if (e.target !== tipFor.el && document.activeElement !== tipFor.el) return;
     const m = tipFor;
     setTimeout(() => {
       if (tipFor !== m || alreadyHasValue(m)) return;
       showTip(m, String(m.value), fieldCaption(m) + ' — this field blocks paste, please type it in', 'err', 0);
-    }, 150);
+    }, 300);
+  }
+  document.addEventListener('paste', checkPasteLanded, true);
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v') checkPasteLanded(e);
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideTip(); }, true);
   window.addEventListener('scroll', () => { if (tipFor) positionTip(); }, true);
